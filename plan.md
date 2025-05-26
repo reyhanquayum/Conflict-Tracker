@@ -1,132 +1,139 @@
 # Project Plan: Conflict Tracker
 
-## Phase 1: Project Foundation & Data Preparation
+## Phase 1.A: Frontend Foundation & Initial Data Setup
 
-*   **Task 1.1: Initialize Project**
-    *   Set up a new React project using Vite: `npm create vite@latest conflict-tracker -- --template react-ts` (or `yarn create vite conflict-tracker --template react-ts`).
-    *   Navigate into the project directory.
-*   **Task 1.2: Install Core Dependencies**
-    *   **React & 3D Globe Library:** `npm install three react-globe.gl` (react-globe.gl uses Three.js; @react-three/fiber and @react-three/drei might be used for custom markers if not fully handled by react-globe.gl, or can be added later if needed for other 3D elements).
+*   **Task 1.A.1: Initialize Project (Frontend)**
+    *   Set up a new React project using Vite: `npm create vite@latest . -- --template react-ts` (in the project root).
+*   **Task 1.A.2: Install Core Frontend Dependencies**
+    *   **React & 3D Globe Library:** `npm install three react-globe.gl rc-slider`
     *   **Data Visualization (2D):** `npm install d3`
     *   **Styling:** `npm install -D tailwindcss postcss autoprefixer`
-    *   **Type Definitions (for D3 if using TS):** `npm install -D @types/d3`
-    *   *(Note: @types/react-globe.gl might be needed if available and using TypeScript extensively with it).*
-*   **Task 1.3: Configure TailwindCSS**
-    *   Initialize Tailwind: `npx tailwindcss init -p`
-    *   Configure `tailwind.config.js` (content paths) and `index.css` (Tailwind directives).
-*   **Task 1.4: Establish Project Structure**
+    *   **Type Definitions:** `npm install -D @types/d3 @types/rc-slider` (if available for rc-slider).
+*   **Task 1.A.3: Configure TailwindCSS**
+    *   Initialize Tailwind: `npx tailwindcss init -p` (or direct binary path).
+    *   Configure `tailwind.config.js` (content paths) and `src/index.css` (Tailwind directives).
+*   **Task 1.A.4: Establish Frontend Project Structure**
     *   Create initial folders:
-        *   `src/components/` (for UI, 3D, and chart components)
-        *   `src/hooks/` (for custom React hooks)
-        *   `src/utils/` (for helper functions, e.g., geo-coordinate conversion)
-        *   `src/types/` (for TypeScript type definitions)
-        *   `public/data/` (for `events.json`, `groups.json`)
+        *   `src/components/` (ui, visualization, charts)
+        *   `src/hooks/`
+        *   `src/utils/`
+        *   `src/types/`
         *   `public/data/geodata/` (for GeoJSON country boundary data)
-        *   `scripts/` (for the Python ETL script at the root level)
-*   **Task 1.5: Data ETL Pipeline (Python Script)**
-    *   *(This can be developed in parallel. We'll need the ACLED CSV data source for this.)*
-    *   Create a Python script (`scripts/process_data.py`).
-    *   **Dependencies:** `pandas`, and optionally `textblob` or `spacy` if NLP is pursued.
-    *   **Steps:**
-        1.  Load data from the ACLED CSV file.
-        2.  Clean data: Handle missing values, filter relevant columns (date, latitude, longitude, actor1, event_type, notes/summary).
-        3.  Transform data:
-            *   Standardize group names.
-            *   Format dates.
-        4.  (Optional NLP): If using TextBlob/spaCy, extract key terms from event descriptions.
-        5.  Generate `events.json`: Array of event objects (e.g., `{ id, lat, lon, group, date, type, description, keywords? }`).
-        6.  Generate `groups.json`: Array of group objects (e.g., `{ name, summary, ideology? }`). This might be partially derived from events or require separate input.
-    *   Place output JSON files into `public/data/`.
+        *   `scripts/` (for Python ETL script)
+        *   `/server` (for backend code - see Phase 1.B)
+*   **Task 1.A.5 (Original Task 1.5 - Now part of Phase 1.B): Data ETL Pipeline (Python Script) to MongoDB**
+    *   This task is superseded by Task 1.B.3. The script `scripts/process_data.py` will be modified to load data into MongoDB Atlas instead of generating local JSON files for events/groups.
 
 ---
 
-## Phase 2: Core 3D Globe Visualization
+## Phase 1.B: Backend Development & MongoDB Atlas Setup (NEW PHASE)
 
-*   **Task 2.1: `GlobeDisplay` Component (formerly `GlobeCanvas`)**
-    *   Create a main React component (`src/components/visualization/GlobeDisplay.tsx`) to host and configure the `react-globe.gl` component.
+*   **Task 1.B.1: Setup MongoDB Atlas**
+    *   Create a new project and cluster on MongoDB Atlas (free tier).
+    *   Configure database user(s) and IP whitelisting.
+    *   Obtain the MongoDB connection string.
+*   **Task 1.B.2: Backend Project Setup (Node.js/Express.js)**
+    *   Create a `/server` directory at the project root.
+    *   Initialize Node.js project: `cd server && npm init -y`.
+    *   Install dependencies: `npm install express mongodb cors dotenv`.
+    *   Set up basic project structure (e.g., `server.js`, `/routes`).
+*   **Task 1.B.3: Modify ETL Script to Populate MongoDB Atlas**
+    *   Update `scripts/process_data.py`:
+        *   Add `pymongo` and `dnspython` to Python dependencies.
+        *   Connect to MongoDB Atlas using the connection string (via environment variable).
+        *   Insert processed ACLED CSV data into an `events` collection.
+        *   Insert/derive group data into a `groups` collection.
+        *   Define and create indexes (e.g., `events`: on `year`, `date`; `groups`: on `name`).
+    *   Run this script once to populate the database.
+*   **Task 1.B.4: Develop Backend API Endpoints (Node.js/Express.js)**
+    *   In the `/server` project:
+    *   **Event Data Endpoint:** `GET /api/events`
+        *   Accept query params: `startYear` (number), `endYear` (number), `limit` (number, e.g., default 2000).
+        *   Query MongoDB `events` collection.
+        *   Return JSON results.
+    *   **Configuration Endpoint:** `GET /api/config/datarange`
+        *   Query `events` collection for min/max year.
+        *   Return `{ minYear, maxYear }` as JSON.
+    *   **(Optional) Group Data Endpoint:** `GET /api/groups` or `GET /api/groups/:groupName`.
+*   **Task 1.B.5: Implement CORS and Environment Variables for Backend**
+    *   Configure `cors` middleware in Express.
+    *   Use a `.env` file (in `/server`, add to `.gitignore`) for `MONGO_URI`, `PORT`, etc.
+
+---
+
+## Phase 2: Core 3D Globe Visualization (Frontend)
+
+*   **Task 2.1: `GlobeDisplay` Component**
+    *   Create/Refine `src/components/visualization/GlobeDisplay.tsx` to host and configure `react-globe.gl`.
 *   **Task 2.2: Implement 3D Political Globe with `react-globe.gl`**
-    *   Source GeoJSON data for world country boundaries (e.g., from Natural Earth Data) and place it in `public/data/geodata/`.
-    *   Load the GeoJSON data in the `GlobeDisplay` component.
-    *   Configure `react-globe.gl` to render country polygons using the GeoJSON.
-    *   Style the globe, polygons (land/ocean), borders, and labels (if supported directly for countries) to achieve the "minimalist dark-mode style."
-    *   Enable basic interactions like hover/click tooltips for countries if provided by `react-globe.gl`.
-*   **Task 2.3: Geospatial Data for Event Markers**
-    *   Ensure `events.json` (from Task 1.5) contains accurate latitude/longitude for events.
-    *   If needed, create utility functions to prepare event data for `react-globe.gl`'s custom object/layer system.
+    *   Source GeoJSON for world countries (e.g., Natural Earth) and place in `public/data/geodata/countries.geojson`.
+    *   `GlobeDisplay` fetches this static GeoJSON.
+    *   Configure `react-globe.gl` for country polygons, styling (minimalist dark-mode), and basic interactions.
+*   **Task 2.3: Geospatial Data for Event Markers (via API)**
+    *   `App.tsx` will fetch event data from `/api/events` based on `TimelineSlider` range.
+    *   This fetched (and already filtered by backend) data will be passed to `GlobeDisplay`.
 *   **Task 2.4: Render Event Markers (Spikes/Pins) on `react-globe.gl`**
-    *   Load `events.json` data.
-    *   Use `react-globe.gl`'s capabilities to render custom objects (our spikes/pins) at event locations. This might involve its `objectsData` prop or a similar mechanism.
+    *   `GlobeDisplay` uses the `events` prop (from `App.tsx`) for `react-globe.gl`'s `pointsData` (or `objectsData` for custom meshes).
     *   Style these markers.
-    *   (Task 2.5 Camera Controls is removed as `react-globe.gl` handles its own camera/interaction model).
 
 ---
 
-## Phase 3: UI Components & Interactivity
+## Phase 3: UI Components & Interactivity (Frontend)
 
+*   **Task 3.0: Setup shadcn/ui (NEW TASK)**
+    *   Run `npx shadcn-ui@latest init` in the project root.
+    *   Configure options (style, color, paths for `globals.css` / `index.css`, `tailwind.config.js`, import aliases `@/components`, `@/lib/utils`, React Server Components: No).
+    *   This will update/create necessary configuration files and `src/lib/utils.ts`.
+    *   Install peer dependencies like `lucide-react` if prompted.
 *   **Task 3.1: `TimelineSlider` Component**
-    *   Create `src/components/ui/TimelineSlider.tsx`.
-    *   Use a simple HTML range input or a library for a more advanced slider.
-    *   Manage selected year range state (e.g., using `useState`).
-    *   Pass filter state up to a parent component to control which events are rendered/highlighted on the globe.
-*   **Task 3.2: Interactive Event Modals/Tooltips**
-    *   Enhance `EventMarker` to be clickable.
-    *   On click, display a modal or tooltip (could be HTML-based overlay or R3F's `<Html>` component from Drei).
-    *   Modal content: Event details (date, type, group) from `events.json` and relevant summary from `groups.json`.
-*   **Task 3.3: `DashboardPanel` Component**
+    *   Implement `src/components/ui/TimelineSlider.tsx` using `rc-slider` (current implementation).
+    *   (Optional: Revisit styling of `rc-slider` later to better match shadcn/ui theme if needed, or replace with a shadcn/ui compatible slider if one exists or is built).
+    *   `App.tsx` fetches initial min/max year range from `/api/config/datarange`.
+    *   Slider controls `startYear` and `endYear` parameters for API calls to `/api/events`.
+*   **Task 3.2: Interactive Event Modals/Tooltips (using shadcn/ui)**
+    *   Add shadcn/ui `Dialog` and/or `Tooltip` components: `npx shadcn-ui@latest add dialog tooltip`.
+    *   Enhance `GlobeDisplay`'s event marker interaction (e.g., `onPointClick` from `react-globe.gl`).
+    *   On click, display a `Dialog` (modal) with event details. Use `Tooltip` for hover info if desired.
+*   **Task 3.3: `DashboardPanel` Component (using shadcn/ui)**
     *   Create `src/components/ui/DashboardPanel.tsx`.
-    *   Display summary statistics:
-        *   Total number of events (dynamic based on timeline filter).
-        *   Number of active groups.
-        *   Other relevant aggregated data.
+    *   Use shadcn/ui components like `Card`, `Table` (if added: `npx shadcn-ui@latest add card table`) for layout and display of summary statistics.
+    *   Statistics might require new API endpoints if aggregations are done server-side.
 
 ---
 
-## Phase 4: 2D Data Visualizations (D3.js)
+## Phase 4: 2D Data Visualizations (D3.js) (Frontend)
 
 *   **Task 4.1: D3 Integration Setup**
-    *   Create wrapper components in React to host D3 charts. D3 will manipulate DOM elements within these wrappers.
+    *   Wrapper components in React for D3 charts.
 *   **Task 4.2: `BarChart` Component**
-    *   Create `src/components/charts/BarChart.tsx`.
-    *   Use D3.js to render a bar chart showing attack count by year or by group.
-    *   Data for the chart should be derived from `events.json` and be reactive to the timeline filter.
+    *   Data for chart derived from event data fetched by `App.tsx` (or a dedicated API endpoint for aggregated chart data).
 *   **Task 4.3: `PieChart` Component**
-    *   Create `src/components/charts/PieChart.tsx`.
-    *   Use D3.js to render a pie chart showing the proportion of activity by different groups.
-    *   Data should also be reactive to filters.
+    *   Similar data sourcing as BarChart.
 
 ---
 
-## Phase 5: Styling, Refinements & Fallback
+## Phase 5: Styling, Refinements & Fallback (Frontend)
 
-*   **Task 5.1: Comprehensive Styling**
-    *   Apply TailwindCSS classes across all components for a cohesive look and feel.
-    *   Ensure the "minimalist dark-mode style" is consistent.
-*   **Task 5.2: Responsive Layout**
-    *   Focus on a desktop-first experience, but ensure basic responsiveness for other screen sizes.
-*   **Task 5.3: WebGL Fallback**
-    *   Implement a check for WebGL support (e.g., using a utility function).
-    *   If WebGL is not supported, display a user-friendly message or a simple static 2D map (placeholder for now).
+*   (Tasks remain largely the same: Comprehensive Styling, Responsive Layout, WebGL Fallback)
 
 ---
 
 ## Phase 6: Deployment
 
-*   **Task 6.1: Build Configuration**
-    *   Ensure Vite build process is correctly configured for static output (`npm run build`).
-*   **Task 6.2: Deploy to Static Host**
-    *   Choose Vercel or Netlify.
-    *   Connect repository and configure deployment settings.
+*   **Task 6.1: Build Configuration (Frontend)**
+    *   Vite build process for static output.
+*   **Task 6.2: Backend Deployment**
+    *   Deploy the Node.js/Express.js API server (e.g., to Vercel Serverless Functions, Netlify Functions, Heroku, Render, etc.).
+    *   Configure environment variables (MongoDB URI) on the deployment platform.
+*   **Task 6.3: Frontend Deployment**
+    *   Deploy static frontend (e.g., Vercel, Netlify).
+    *   Ensure frontend API calls point to the deployed backend URL.
 
 ---
 
-## Optional Enhancements (If Time Permits)
+## Optional Enhancements (Time Permitting)
 
-*   **3D particle animations** for event magnitude.
-*   **Search bar** to filter by group name or keyword.
-*   **Color-encoded markers** by group or ideology.
-*   Integrate **Observable** or **Flourish.js** (this would be an alternative to custom D3 charts).
+*   (Tasks remain the same)
 
 ---
-
-**Next Steps & Questions (from previous discussion):**
-(These questions were resolved, plan updated based on using `react-globe.gl`)
+(Old "Next Steps & Questions" section removed as it's outdated)
