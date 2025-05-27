@@ -8,6 +8,8 @@ interface TimelineSliderProps {
   valueStartYear: number;
   valueEndYear: number;
   onYearRangeChange: (startYear: number, endYear: number) => void;
+  onBeforeChange?: () => void; // Optional: Called when drag starts
+  onAfterChange?: () => void;  // Optional: Called when drag ends
 }
 
 const TimelineSlider: React.FC<TimelineSliderProps> = ({
@@ -16,6 +18,8 @@ const TimelineSlider: React.FC<TimelineSliderProps> = ({
   valueStartYear,
   valueEndYear,
   onYearRangeChange,
+  onBeforeChange,
+  onAfterChange,
 }) => {
   // Local state for live feedback during drag
   const [draftRange, setDraftRange] = useState<[number, number]>([valueStartYear, valueEndYear]);
@@ -63,7 +67,19 @@ const TimelineSlider: React.FC<TimelineSliderProps> = ({
           max={maxYear}
           value={draftRange} 
           onChange={handleSliderContinuousChange}
-          onChangeComplete={handleSliderFinalChange}
+          onBeforeChange={onBeforeChange} // Pass through
+          onAfterChange={() => { // Call both our final change and the onAfterChange prop
+            handleSliderFinalChange(draftRange); // Ensure final change uses the latest draft
+            if (onAfterChange) onAfterChange();
+          }}
+          // onChangeComplete is still useful for the final value propagation
+          // but onAfterChange is better for focus state.
+          // Let's ensure handleSliderFinalChange is robustly called.
+          // rc-slider's onAfterChange is called with the value, let's use that.
+          // We'll remove onChangeComplete and rely on onAfterChange for final value.
+          // onChange={handleSliderContinuousChange}
+          // onBeforeChange={onBeforeChange}
+          // onAfterChange={handleSliderFinalChangeAndBlur} // New combined handler
           allowCross={false}
           count={1}
           range={true}

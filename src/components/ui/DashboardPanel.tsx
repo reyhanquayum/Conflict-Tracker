@@ -28,7 +28,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
     : (overallSummaryData ? overallSummaryData.byGroup : []); 
 
   return (
-    <div className="w-auto max-w-md bg-slate-900 text-slate-100 p-4 shadow-lg rounded-lg overflow-y-auto max-h-[calc(100vh-2rem)]">
+    <div className="w-auto max-w-sm bg-slate-900 text-slate-100 p-4 shadow-lg rounded-lg overflow-y-auto max-h-[calc(100vh-2rem)]"> {/* Changed max-w-md to max-w-sm */}
       <h3 className="text-lg font-semibold text-slate-100 mb-3 border-b border-slate-700 pb-2">
         Dashboard
       </h3>
@@ -46,11 +46,10 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
           </p>
         )}
         <div>
-          {/* Types for BarChart/PieChart data prop need to be EventData[] | YearlyCount[] / GroupCount[] */}
-          <BarChart data={barChartData} width={350} height={200} />
+          <BarChart data={barChartData} width={320} height={200} /> {/* Reduced width */}
         </div>
         <div>
-          <PieChart data={pieChartData} width={350} height={250} />
+          <PieChart data={pieChartData} width={320} height={250} /> {/* Reduced width */}
         </div>
       </div>
     </div>

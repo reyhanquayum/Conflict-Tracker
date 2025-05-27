@@ -19,7 +19,7 @@ const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ cluster, events, is
   }
 
   return (
-    <div className="absolute top-4 right-4 h-auto max-h-[calc(100vh-2rem)] w-1/3 max-w-md bg-slate-900 text-slate-100 p-6 shadow-lg overflow-y-auto transition-transform transform-gpu z-20 rounded-lg">
+    <div className="absolute top-4 right-4 h-auto max-h-[calc(100vh-2rem)] w-1/3 max-w-sm bg-slate-900 text-slate-100 p-6 shadow-lg overflow-y-auto transition-transform transform-gpu z-20 rounded-lg"> {/* Changed max-w-md to max-w-sm */}
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold text-slate-100">
           Cluster Details ({cluster.count} events)
