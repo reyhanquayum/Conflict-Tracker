@@ -93,7 +93,28 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
         controls.removeEventListener('end', handleViewUpdate);
       };
     }
-  }, [onViewChange, userInteracted]); // userInteracted dependency might not be needed here if it only affects auto-rotate
+  }, [onViewChange, userInteracted]); 
+
+  // Effect to set initial camera position
+  useEffect(() => {
+    const globe = globeEl.current;
+    if (globe && !userInteracted) { // Only set initial view if user hasn't interacted
+      // Coordinates for Indian subcontinent / east of Middle East
+      const initialLat = 25; // e.g., Northern India / Pakistan
+      const initialLng = 75; // e.g., Central India
+      const initialAltitude = 2.0; // Adjust for desired zoom level
+      const transitionDurationMs = 1500; // Smooth transition
+
+      // Check if pointOfView method exists
+      if (typeof globe.pointOfView === 'function') {
+        globe.pointOfView({ lat: initialLat, lng: initialLng, altitude: initialAltitude }, transitionDurationMs);
+      } else {
+        console.warn("globe.pointOfView method not available. Cannot set initial camera position.");
+      }
+    }
+    // This effect should run once on mount, or if globeEl changes (which it shouldn't after init)
+    // Do not add userInteracted to dependency array here, or it will re-center if userInteracted becomes false
+  }, [globeEl]); // Run when globeEl is set.
 
   // Function to create the 3D object for each cluster
   const createClusterObject = useCallback((obj: any) => {

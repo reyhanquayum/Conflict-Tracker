@@ -1,21 +1,44 @@
-import React, { useState, useEffect, useCallback, useRef } from "react"; 
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import GlobeDisplay from "./components/visualization/GlobeDisplay";
 import TimelineSlider from "./components/ui/TimelineSlider";
 import DashboardPanel from "./components/ui/DashboardPanel";
-import EventDetailPanel from "./components/ui/EventDetailPanel"; 
+import EventDetailPanel from "./components/ui/EventDetailPanel";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose, // If we want a separate close button in footer
+} from "@/components/ui/dialog";
 import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
-import type { EventData, ClusterData, MapView, OverallSummaryData } from "@/types"; // Added OverallSummaryData
+import type {
+  EventData,
+  ClusterData,
+  MapView,
+  OverallSummaryData,
+} from "@/types";
 
 const API_BASE_URL = "http://localhost:3001";
 
-// Type guard for ClusterData (already in types, but good for clarity if used here)
-// function isClusterItem(item: any): item is ClusterData {
-//   return item && item.isCluster === true;
-// }
+function isWebGLAvailable(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    return !!(
+      window.WebGLRenderingContext &&
+      (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+    );
+  } catch (e) {
+    return false;
+  }
+}
 
 function App() {
-  const [clusterDisplayData, setClusterDisplayData] = useState<ClusterData[]>([]); // Holds clusters for the globe
+  const [clusterDisplayData, setClusterDisplayData] = useState<ClusterData[]>(
+    []
+  ); // Holds clusters for the globe
   const [minYear, setMinYear] = useState(0);
   const [maxYear, setMaxYear] = useState(0);
   const [currentYearRange, setCurrentYearRange] = useState<{
@@ -28,12 +51,27 @@ function App() {
   const mapViewUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for debounce timer
 
   // State for events within a selected cluster
-  const [detailedEventsInCluster, setDetailedEventsInCluster] = useState<EventData[] | null>(null);
-  const [selectedCluster, setSelectedCluster] = useState<ClusterData | null>(null);
+  const [detailedEventsInCluster, setDetailedEventsInCluster] = useState<
+    EventData[] | null
+  >(null);
+  const [selectedCluster, setSelectedCluster] = useState<ClusterData | null>(
+    null
+  );
   const [isLoadingClusterDetails, setIsLoadingClusterDetails] = useState(false);
   // State for overall summary data for dashboard when no cluster is selected
   const [overallSummaryData, setOverallSummaryData] = useState<OverallSummaryData | null>(null);
+  const [showInfoModal, setShowInfoModal] = useState(true); // Initial state, will be updated
+  const [webGLSupported, setWebGLSupported] = useState(true); 
+  const [dontShowAgain, setDontShowAgain] = useState(false); // For "Don't show again" checkbox
 
+
+  useEffect(() => {
+    setWebGLSupported(isWebGLAvailable());
+    const hideModalPreference = localStorage.getItem('hideConflictTrackerInfoModal');
+    if (hideModalPreference === 'true') {
+      setShowInfoModal(false);
+    }
+  }, []);
 
   // Fetch min/max year range for the slider
   useEffect(() => {
@@ -45,18 +83,22 @@ function App() {
           setMaxYear(data.maxYear);
           setCurrentYearRange({ start: data.minYear, end: data.maxYear });
           setDataRangeLoaded(true);
-        } else { /* ... error handling ... */ 
+        } else {
+          /* ... error handling ... */
           console.error("Failed to fetch valid data range from API.");
           const currentSystemYear = new Date().getFullYear();
-          setMinYear(1990); setMaxYear(currentSystemYear);
+          setMinYear(1990);
+          setMaxYear(currentSystemYear);
           setCurrentYearRange({ start: 1990, end: currentSystemYear });
           setDataRangeLoaded(true);
         }
       })
-      .catch((err) => { /* ... error handling ... */ 
+      .catch((err) => {
+        /* ... error handling ... */
         console.error("Error loading data range from API:", err);
         const currentSystemYear = new Date().getFullYear();
-        setMinYear(1990); setMaxYear(currentSystemYear);
+        setMinYear(1990);
+        setMaxYear(currentSystemYear);
         setCurrentYearRange({ start: 1990, end: currentSystemYear });
         setDataRangeLoaded(true);
       });
@@ -67,25 +109,35 @@ function App() {
     if (currentYearRange && dataRangeLoaded) {
       const { start, end } = currentYearRange;
       let apiUrl = `${API_BASE_URL}/api/events?startYear=${start}&endYear=${end}`;
-      
+
       let calculatedZoomLevel = 5; // Default for overview
-      if (mapView) { // Pass mapView details to get appropriate cluster granularity
+      if (mapView) {
+        // Pass mapView details to get appropriate cluster granularity
         if (mapView.altitude < 0.5) calculatedZoomLevel = 15;
         else if (mapView.altitude < 1.0) calculatedZoomLevel = 12;
         else if (mapView.altitude < 1.5) calculatedZoomLevel = 9;
         else if (mapView.altitude < 2.0) calculatedZoomLevel = 7;
         apiUrl += `&zoomLevel=${calculatedZoomLevel}`;
         apiUrl += `&centerLat=${mapView.lat}&centerLng=${mapView.lng}`;
-        console.log(`[App] Requesting CLUSTERS. Altitude: ${mapView.altitude.toFixed(2)}, Zoom: ${calculatedZoomLevel}, Center: ${mapView.lat.toFixed(2)},${mapView.lng.toFixed(2)}`);
+        console.log(
+          `[App] Requesting CLUSTERS. Altitude: ${mapView.altitude.toFixed(
+            2
+          )}, Zoom: ${calculatedZoomLevel}, Center: ${mapView.lat.toFixed(
+            2
+          )},${mapView.lng.toFixed(2)}`
+        );
       } else {
         apiUrl += `&zoomLevel=${calculatedZoomLevel}`; // Initial load zoom
-        console.log(`[App] Initial load, requesting CLUSTERS. Default Zoom: ${calculatedZoomLevel}`);
+        console.log(
+          `[App] Initial load, requesting CLUSTERS. Default Zoom: ${calculatedZoomLevel}`
+        );
       }
-      
+
       console.log(`Fetching clusters from: ${apiUrl}`);
       fetch(apiUrl)
         .then((res) => res.json())
-        .then((data: ClusterData[]) => { // API now always returns ClusterData[]
+        .then((data: ClusterData[]) => {
+          // API now always returns ClusterData[]
           setClusterDisplayData(data);
           console.log(`Received ${data.length} clusters from API.`);
         })
@@ -103,24 +155,29 @@ function App() {
       const summaryApiUrl = `${API_BASE_URL}/api/events/summary?startYear=${start}&endYear=${end}`;
       console.log(`Fetching overall summary data from: ${summaryApiUrl}`);
       fetch(summaryApiUrl)
-        .then(res => res.json())
+        .then((res) => res.json())
         .then((data: OverallSummaryData) => {
           setOverallSummaryData(data);
-          console.log(`Received overall summary data: ${data.byYear.length} years, ${data.byGroup.length} groups.`);
+          console.log(
+            `Received overall summary data: ${data.byYear.length} years, ${data.byGroup.length} groups.`
+          );
         })
-        .catch(err => {
+        .catch((err) => {
           console.error("Error loading overall summary data:", err);
           setOverallSummaryData(null);
         });
     }
   }, [currentYearRange, dataRangeLoaded]);
 
-  const handleYearRangeChange = useCallback((startYear: number, endYear: number) => {
-    setCurrentYearRange({ start: startYear, end: endYear });
-    // When year range changes, clear any selected cluster details
-    setSelectedCluster(null);
-    setDetailedEventsInCluster(null);
-  }, []);
+  const handleYearRangeChange = useCallback(
+    (startYear: number, endYear: number) => {
+      setCurrentYearRange({ start: startYear, end: endYear });
+      // When year range changes, clear any selected cluster details
+      setSelectedCluster(null);
+      setDetailedEventsInCluster(null);
+    },
+    []
+  );
 
   const handleViewChange = useCallback((newView: MapView) => {
     // console.log("GlobeDisplay reported view change:", newView); // Raw view changes
@@ -128,7 +185,10 @@ function App() {
       clearTimeout(mapViewUpdateTimeoutRef.current);
     }
     mapViewUpdateTimeoutRef.current = setTimeout(() => {
-      console.log("Debounced: Setting MapView and triggering API fetch for clusters:", newView);
+      console.log(
+        "Debounced: Setting MapView and triggering API fetch for clusters:",
+        newView
+      );
       setMapView(newView);
     }, 500); // 500ms debounce delay
   }, []); // Empty dependency array, uses ref
@@ -142,46 +202,71 @@ function App() {
     };
   }, []);
 
-  const handleClusterClick = useCallback((cluster: ClusterData) => {
-    if (!currentYearRange) return;
-    console.log("Cluster clicked:", cluster);
-    setSelectedCluster(cluster);
-    setIsLoadingClusterDetails(true);
-    setDetailedEventsInCluster(null); // Clear previous details
+  const handleClusterClick = useCallback(
+    (cluster: ClusterData) => {
+      if (!currentYearRange) return;
+      console.log("Cluster clicked:", cluster);
+      setSelectedCluster(cluster);
+      setIsLoadingClusterDetails(true);
+      setDetailedEventsInCluster(null); // Clear previous details
 
-    // Use cluster.bounds which should be returned by the /api/events endpoint
-    const { minLat, maxLat, minLng, maxLng } = cluster.bounds;
-    const { start, end } = currentYearRange;
+      // Use cluster.bounds which should be returned by the /api/events endpoint
+      const { minLat, maxLat, minLng, maxLng } = cluster.bounds;
+      const { start, end } = currentYearRange;
 
-    const detailApiUrl = `${API_BASE_URL}/api/events_in_cluster?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&startYear=${start}&endYear=${end}&limit=100`;
-    
-    console.log("Fetching detailed events for cluster:", detailApiUrl);
-    fetch(detailApiUrl)
-      .then(res => res.json())
-      .then((events: EventData[]) => {
-        setDetailedEventsInCluster(events);
-        console.log(`Received ${events.length} detailed events for cluster.`);
-      })
-      .catch(err => {
-        console.error("Error fetching detailed events for cluster:", err);
-        setDetailedEventsInCluster([]); // Set to empty array on error
-      })
-      .finally(() => {
-        setIsLoadingClusterDetails(false);
-      });
-  }, [currentYearRange]);
+      const detailApiUrl = `${API_BASE_URL}/api/events_in_cluster?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&startYear=${start}&endYear=${end}&limit=100`;
+
+      console.log("Fetching detailed events for cluster:", detailApiUrl);
+      fetch(detailApiUrl)
+        .then((res) => res.json())
+        .then((events: EventData[]) => {
+          setDetailedEventsInCluster(events);
+          console.log(`Received ${events.length} detailed events for cluster.`);
+        })
+        .catch((err) => {
+          console.error("Error fetching detailed events for cluster:", err);
+          setDetailedEventsInCluster([]); // Set to empty array on error
+        })
+        .finally(() => {
+          setIsLoadingClusterDetails(false);
+        });
+    },
+    [currentYearRange]
+  );
 
   const handleCloseDetailPanel = () => {
     setSelectedCluster(null);
     setDetailedEventsInCluster(null);
   };
 
+  const handleInfoModalOpenChange = (open: boolean) => {
+    setShowInfoModal(open);
+    if (!open && dontShowAgain) { // If dialog is closing and checkbox was checked
+      localStorage.setItem('hideConflictTrackerInfoModal', 'true');
+    }
+  };
+
+  if (!webGLSupported) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-900 text-slate-100 p-8 text-center">
+        <h1 className="text-2xl font-semibold mb-4">WebGL Not Supported</h1>
+        <p className="mb-2">
+          This application requires WebGL to display the 3D globe visualization.
+        </p>
+        <p>
+          Please try a different browser or device, or ensure WebGL is enabled
+          in your browser settings.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: "relative", height: "100vh", width: "100%" }}>
-      <GlobeDisplay 
-        clusters={clusterDisplayData} // Corrected prop name to 'clusters'
+      <GlobeDisplay
+        clusters={clusterDisplayData}
         onViewChange={handleViewChange}
-        onClusterClick={handleClusterClick} 
+        onClusterClick={handleClusterClick}
       />
       {dataRangeLoaded && currentYearRange && (
         <TimelineSlider
@@ -193,38 +278,100 @@ function App() {
         />
       )}
       <div className="absolute top-4 left-4 z-30 flex items-start space-x-2">
-        {dataRangeLoaded && currentYearRange && isDashboardVisible && ( 
+        {dataRangeLoaded && currentYearRange && isDashboardVisible && (
           <DashboardPanel
             totalFilteredEvents={
-              selectedCluster 
-                ? (detailedEventsInCluster ? detailedEventsInCluster.length : 0) 
-                : (overallSummaryData ? overallSummaryData.byYear.reduce((sum, y) => sum + y.count, 0) : clusterDisplayData.reduce((sum, c) => sum + c.count, 0))
+              selectedCluster
+                ? detailedEventsInCluster
+                  ? detailedEventsInCluster.length
+                  : 0
+                : overallSummaryData
+                ? overallSummaryData.byYear.reduce((sum, y) => sum + y.count, 0)
+                : clusterDisplayData.reduce((sum, c) => sum + c.count, 0)
             }
             currentYearRange={currentYearRange}
             detailedEventsData={detailedEventsInCluster} // For when a cluster is selected
-            overallSummaryData={overallSummaryData}     // For overview
-            isClusterSelected={!!selectedCluster}       // To help DashboardPanel decide
+            overallSummaryData={overallSummaryData} // For overview
+            isClusterSelected={!!selectedCluster} // To help DashboardPanel decide
           />
         )}
         <Button
           variant="outline"
           size="icon"
-          className="bg-slate-800 hover:bg-slate-700 text-slate-100 shrink-0" 
+          className="bg-slate-800 hover:bg-slate-700 text-slate-100 shrink-0"
           onClick={() => setIsDashboardVisible(!isDashboardVisible)}
           aria-label={isDashboardVisible ? "Hide Dashboard" : "Show Dashboard"}
         >
-          {isDashboardVisible ? <PanelRightOpen className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+          {isDashboardVisible ? (
+            <PanelRightOpen className="h-5 w-5" />
+          ) : (
+            <PanelLeftOpen className="h-5 w-5" />
+          )}
         </Button>
       </div>
       {/* Display EventDetailPanel with list of events from selected cluster */}
       {selectedCluster && (
-        <EventDetailPanel 
-          cluster={selectedCluster} 
-          events={detailedEventsInCluster} 
+        <EventDetailPanel
+          cluster={selectedCluster}
+          events={detailedEventsInCluster}
           isLoading={isLoadingClusterDetails}
-          onClose={handleCloseDetailPanel} 
+          onClose={handleCloseDetailPanel}
         />
       )}
+
+      <Dialog open={showInfoModal} onOpenChange={handleInfoModalOpenChange}>
+        <DialogContent className="bg-slate-800 text-slate-100 border-slate-700 sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              Welcome to MENA Interactive Geospatial Conflict Tracker!
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 pt-2">
+              Explore global unrest and extremist activity with these
+              interactive features:
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="list-disc list-inside space-y-2 text-sm text-slate-300 py-4">
+            <li>
+              Use the <strong className="text-sky-400">timeline slider</strong>{" "}
+              at the bottom to select a year range.
+            </li>
+            <li>
+              <strong className="text-sky-400">Zoom and pan</strong> the globe
+              to explore different regions.
+            </li>
+            <li>
+              Click on event clusters (orange spikes) to view{" "}
+              <strong className="text-sky-400">detailed information</strong> and
+              charts in the dashboard.
+            </li>
+            <li>
+              Toggle the{" "}
+              <strong className="text-sky-400">dashboard visibility</strong>{" "}
+              using the button in the top-left.
+            </li>
+          </ul>
+          <p className="text-xs text-slate-500 pt-3">
+            Data sourced from ACLED (Armed Conflict Location & Event Data Project), covering events from 1999 to May 2, 2025, for the Middle East and North Africa region.
+          </p>
+          <DialogFooter className="sm:justify-between pt-4"> {/* Changed to justify-between for checkbox */}
+            <div className="flex items-center space-x-2">
+              <input 
+                type="checkbox" 
+                id="dontShowAgainInfoModal" // Unique ID for the checkbox
+                checked={dontShowAgain} 
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+                className="h-4 w-4 text-sky-500 border-slate-600 rounded focus:ring-sky-400 bg-slate-700"
+              />
+              <label htmlFor="dontShowAgainInfoModal" className="text-xs text-slate-400 select-none">Don't show this again</label>
+            </div>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary" className="bg-sky-500 hover:bg-sky-600 text-white mt-2 sm:mt-0">
+                Got it!
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
