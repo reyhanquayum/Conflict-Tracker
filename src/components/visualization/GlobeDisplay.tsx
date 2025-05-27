@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from "react-globe.gl";
-import { Color, CylinderGeometry, MeshBasicMaterial, Mesh } from "three"; // Import THREE components
+import { Color, CylinderGeometry, MeshBasicMaterial, Mesh, SphereGeometry } from "three"; // Added SphereGeometry
 import type { ClusterData, MapView } from "@/types"; 
 
 const GEOJSON_FILE_URL = "/data/geodata/countries.geojson";
@@ -100,11 +100,22 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     const mesh = new Mesh(geometry, material);
     // Position the base of the cylinder on the globe surface
     // The object's altitude is handled by objectAltitude prop or default behavior
-    // We might need to shift it up by height/2 if origin is center
-    mesh.translateY(finalHeight / 2); // Use finalHeight here
-    mesh.rotation.x = Math.PI / 2; // Orient cylinder to stand up if default is along Y
+    
+    // Rotate around X to make the original Y-axis (height) align with the Z-axis.
+    // Positive PI/2 should make the tip (original +Y) point along the new +Z.
+    mesh.rotation.x = Math.PI / 2; 
+    // NO translation for this test. The center of the cone's height will be at objectAltitude.
 
-    return mesh;
+    return mesh; 
+
+    // --- DEBUG: Return a simple sphere ---
+    // const sphereRadius = 0.2; 
+    // const sphereGeo = new SphereGeometry(sphereRadius, 16, 16);
+    // const sphereMat = new MeshBasicMaterial({ color: 'red' });
+    // const sphereMesh = new Mesh(sphereGeo, sphereMat);
+    // return sphereMesh;
+    // --- END DEBUG ---
+
   }, []);
 
   const getObjectLabel = useCallback((obj: any) => {

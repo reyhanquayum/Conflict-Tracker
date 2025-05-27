@@ -10,9 +10,9 @@ interface PieChartProps {
 
 const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null); // Ref for the tooltip div
 
   useEffect(() => {
-    if (!data || data.length === 0 || !svgRef.current) {
       if (svgRef.current) {
         d3.select(svgRef.current).selectAll("*").remove();
       }
