@@ -1,54 +1,79 @@
-# React + TypeScript + Vite
+# MENA Interactive Geospatial Conflict Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is an interactive 3D data visualization of extremist activity and conflict events, primarily focusing on the Middle East and North Africa (MENA) region. This application allows users to explore event data across a timeline on a 3D globe, view aggregated statistics, and also view specific event details.
 
-Currently, two official plugins are available:
+## Key Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+*   **Interactive 3D Globe:** Visualizes event clusters as 3D spikes, with height indicating event density.
+*   **Timeline Control:** A slider to filter events by year range.
+*   **Dynamic Clustering:** Event data is clustered geographically, with cluster granularity adjusting based on zoom level.
+*   **Detailed Event Information:** Clicking on a cluster reveals a panel with a list of individual events, including descriptions.
+*   **Dashboard Analytics:**
+    *   Bar chart showing event counts per year (for the overall selected range or a specific cluster).
+    *   Pie chart displaying event proportion by group (for the overall selected range or a specific cluster).
+    *   Toggleable dashboard visibility.
+*   **Hover Interactions:** Spikes on the globe highlight on hover, desaturating other spikes for focus.
 
-## Expanding the ESLint configuration
+## Data Source
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+The event data used in this visualization is sourced from the **Armed Conflict Location & Event Data Project (ACLED)**.
+The specific dataset covers events from **1999 to May 2, 2025**, for the **Middle East and North Africa region**.
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+We extend our gratitude to ACLED for making their valuable data publicly available. Please refer to [acleddata.com](https://acleddata.com) for more information on their dataset and data collection methodology.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Tech Stack
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+*   **Frontend:**
+    *   React.js with Vite
+    *   TypeScript
+    *   Three.js & React Three Fiber (via `react-globe.gl`) for 3D globe visualization
+    *   D3.js for data aggregation and rendering charts (Bar Chart, Pie Chart)
+    *   TailwindCSS for styling
+    *   `rc-slider` for the timeline component
+    *   `shadcn/ui` components (Dialog, Button)
+*   **Backend:**
+    *   Node.js with Express.js
+    *   MongoDB for data storage
+*   **Data Processing (ETL):**
+    *   Python (script: `scripts/process_data.py`)
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## Setup and Running
+
+### Prerequisites
+
+*   Node.js and npm (or yarn)
+*   Python 3.x (for the data processing script, if running ETL)
+*   MongoDB instance (local or cloud-hosted, e.g., MongoDB Atlas)
+
+### Backend Setup
+
+1.  Navigate to the `server` directory: `cd server`
+2.  Install dependencies: `npm install`
+3.  Create a `.env` file in the `server` directory with your MongoDB URI:
+    ```
+    MONGO_URI=your_mongodb_connection_string
+    PORT=3001
+    ```
+4.  Start the backend server: `npm start`
+    The server will typically run on `http://localhost:3001`.
+
+### Frontend Setup
+
+1.  Navigate to the project root directory (if not already there).
+2.  Install dependencies: `npm install`
+3.  Ensure the backend server is running. The frontend expects the API at `http://localhost:3001`.
+4.  Start the frontend development server: `npm run dev`
+    The application will typically be available at `http://localhost:5173`.
+
+### Data Processing (One-time ETL)
+
+1.  Ensure Python dependencies are installed (e.g., `pandas`, `pymongo`). You might use a virtual environment.
+    If a `Pipfile` is present: `pipenv install && pipenv shell`
+    Or with `requirements.txt`: `pip install -r requirements.txt` (create one if needed)
+2.  Update the MongoDB connection string and CSV file path in `scripts/process_data.py` if necessary.
+3.  Run the script: `python scripts/process_data.py`
+    This will populate your MongoDB database with event data from the ACLED CSV.
+
+---
+
+This project aims to provide an insightful and interactive way to explore complex conflict data.
