@@ -30,7 +30,7 @@ let db;
 async function connectDB() {
   try {
     await client.connect();
-    db = client.db("conflict_tracker_db"); // Replace with your DB_NAME if different
+    db = client.db("conflict_tracker_db");
     console.log("Successfully connected to MongoDB Atlas!");
   } catch (err) {
     console.error("Failed to connect to MongoDB", err);
@@ -41,21 +41,67 @@ async function connectDB() {
 connectDB().then(() => {
   // API Endpoints
 
-  // Placeholder for GET /api/events
+  // GET /api/events - Get events based on year range and limit
   app.get('/api/events', async (req, res) => {
-    // To be implemented:
-    // const { startYear, endYear, limit = 2000 } = req.query;
-    // Query db.collection('events') based on params
-    // Send results
-    res.json({ message: "GET /api/events endpoint placeholder", query: req.query });
+    if (!db) {
+      return res.status(503).json({ error: "Database not connected" });
+    }
+    try {
+      const { startYear, endYear, limit = '2000' } = req.query; // Query params are strings
+
+      // Validate and parse parameters
+      const sYear = parseInt(startYear, 10);
+      const eYear = parseInt(endYear, 10);
+      const lim = parseInt(limit, 10);
+
+      if (isNaN(sYear) || isNaN(eYear)) {
+        return res.status(400).json({ error: "startYear and endYear must be valid numbers." });
+      }
+      if (isNaN(lim) || lim <= 0) {
+        return res.status(400).json({ error: "limit must be a positive valid number." });
+      }
+
+      const eventsCollection = db.collection('events');
+      const query = {
+        year: { $gte: sYear, $lte: eYear }
+      };
+      
+      const events = await eventsCollection.find(query).limit(lim).toArray();
+      res.json(events);
+
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      res.status(500).json({ error: "Failed to fetch events" });
+    }
   });
 
-  // Placeholder for GET /api/config/datarange
+  // GET /api/config/datarange - Get min and max year from events
   app.get('/api/config/datarange', async (req, res) => {
-    // To be implemented:
-    // Query db.collection('events') for min and max year
-    // Send { minYear, maxYear }
-    res.json({ message: "GET /api/config/datarange placeholder" });
+    if (!db) {
+      return res.status(503).json({ error: "Database not connected" });
+    }
+    try {
+      const eventsCollection = db.collection('events');
+      const result = await eventsCollection.aggregate([
+        {
+          $group: {
+            _id: null, // Group all documents together
+            minYear: { $min: "$year" },
+            maxYear: { $max: "$year" }
+          }
+        }
+      ]).toArray();
+
+      if (result.length > 0) {
+        res.json({ minYear: result[0].minYear, maxYear: result[0].maxYear });
+      } else {
+        // Fallback if no events or no year field (should not happen with our ETL)
+        res.json({ minYear: 1990, maxYear: new Date().getFullYear() }); 
+      }
+    } catch (error) {
+      console.error("Error fetching data range:", error);
+      res.status(500).json({ error: "Failed to fetch data range" });
+    }
   });
 
 
