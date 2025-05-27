@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react"; // Added useRef
 import GlobeDisplay from "./components/visualization/GlobeDisplay";
 import TimelineSlider from "./components/ui/TimelineSlider";
 import DashboardPanel from "./components/ui/DashboardPanel";
@@ -25,6 +25,7 @@ function App() {
   const [dataRangeLoaded, setDataRangeLoaded] = useState(false);
   const [isDashboardVisible, setIsDashboardVisible] = useState(true);
   const [mapView, setMapView] = useState<MapView | null>(null);
+  const mapViewUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for debounce timer
 
   // State for events within a selected cluster
   const [detailedEventsInCluster, setDetailedEventsInCluster] = useState<EventData[] | null>(null);
@@ -101,8 +102,23 @@ function App() {
   }, []);
 
   const handleViewChange = useCallback((newView: MapView) => {
-    console.log("Map view changed:", newView);
-    setMapView(newView);
+    // console.log("GlobeDisplay reported view change:", newView); // Raw view changes
+    if (mapViewUpdateTimeoutRef.current) {
+      clearTimeout(mapViewUpdateTimeoutRef.current);
+    }
+    mapViewUpdateTimeoutRef.current = setTimeout(() => {
+      console.log("Debounced: Setting MapView and triggering API fetch for clusters:", newView);
+      setMapView(newView);
+    }, 500); // 500ms debounce delay
+  }, []); // Empty dependency array, uses ref
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (mapViewUpdateTimeoutRef.current) {
+        clearTimeout(mapViewUpdateTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleClusterClick = useCallback((cluster: ClusterData) => {

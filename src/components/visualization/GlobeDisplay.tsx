@@ -17,6 +17,26 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
   const [countries, setCountries] = useState<{ features: any[] }>({ features: [] });
   const [userInteracted, setUserInteracted] = useState(false);
   const globeEl = useRef<any>(null);
+  const [hoveredCluster, setHoveredCluster] = useState<ClusterData | null>(null); 
+  const hoverDebounceTimerRef = useRef<NodeJS.Timeout | null>(null); // Ref for hover debounce timer
+
+  const handleObjectHover = useCallback((obj: object | null) => {
+    if (hoverDebounceTimerRef.current) {
+      clearTimeout(hoverDebounceTimerRef.current);
+    }
+    hoverDebounceTimerRef.current = setTimeout(() => {
+      setHoveredCluster(obj as ClusterData | null);
+    }, 75); // 75ms debounce for hover, adjust as needed
+  }, []);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverDebounceTimerRef.current) {
+        clearTimeout(hoverDebounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // Renamed handlePointClick to handleObjectClick for clarity with objectsData
   const handleObjectClick = useCallback((obj: object) => {
@@ -77,7 +97,7 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
 
   // Function to create the 3D object for each cluster
   const createClusterObject = useCallback((obj: any) => {
-    const cluster = obj as ClusterData;
+    const cluster = obj as ClusterData; // This is the cluster data for the current object
     if (!cluster || typeof cluster.count !== 'number') {
       return new Mesh(); // Return an empty mesh if data is invalid
     }
@@ -95,7 +115,24 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     
     // Changed radiusTop from BASE_RADIUS to 0 to make a cone (spike)
     const geometry = new CylinderGeometry(0, BASE_RADIUS, finalHeight, 8); 
-    const material = new MeshBasicMaterial({ color: 'orange', opacity: 0.75, transparent: true });
+    
+    let materialColor = 'orange';
+    let materialOpacity = 0.75;
+
+    if (hoveredCluster) {
+      // Check if the current cluster (obj) is the same as hoveredCluster
+      // Need a stable ID for comparison, or compare by lat/lon if precise enough
+      // Assuming lat/lon are good enough for this demo if no explicit ID
+      if (cluster.lat === hoveredCluster.lat && cluster.lon === hoveredCluster.lon && cluster.count === hoveredCluster.count) {
+        materialColor = 'orangered'; // Highlight hovered
+        materialOpacity = 0.9;
+      } else {
+        materialColor = '#555555'; // Desaturated grey for non-hovered
+        materialOpacity = 0.5;
+      }
+    }
+    
+    const material = new MeshBasicMaterial({ color: materialColor, opacity: materialOpacity, transparent: true });
     
     const mesh = new Mesh(geometry, material);
     // Position the base of the cylinder on the globe surface
@@ -108,15 +145,7 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
 
     return mesh; 
 
-    // --- DEBUG: Return a simple sphere ---
-    // const sphereRadius = 0.2; 
-    // const sphereGeo = new SphereGeometry(sphereRadius, 16, 16);
-    // const sphereMat = new MeshBasicMaterial({ color: 'red' });
-    // const sphereMesh = new Mesh(sphereGeo, sphereMat);
-    // return sphereMesh;
-    // --- END DEBUG ---
-
-  }, []);
+  }, [hoveredCluster]); // Add hoveredCluster as a dependency
 
   const getObjectLabel = useCallback((obj: any) => {
     const cluster = obj as ClusterData;
@@ -139,8 +168,8 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
         objectAltitude={0.01}  // Altitude for the base of the object
         objectThreeObject={createClusterObject}
         objectLabel={getObjectLabel}
-        onObjectClick={handleObjectClick} // Changed from onPointClick
-        // pointsTransitionDuration={0} // Not directly applicable to custom objects in the same way
+        onObjectClick={handleObjectClick} 
+        onObjectHover={handleObjectHover} // Added hover handler
       />
     </div>
   );
