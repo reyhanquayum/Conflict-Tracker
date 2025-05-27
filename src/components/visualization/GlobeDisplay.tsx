@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useRef, useCallback } from "react"; // Removed useMemo
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from "react-globe.gl";
-import { Color } from "three";
-// import * as d3 from 'd3'; // Removed D3 import
+import { Color, CylinderGeometry, MeshBasicMaterial, Mesh } from "three"; // Import THREE components
 import type { ClusterData, MapView } from "@/types"; 
 
 const GEOJSON_FILE_URL = "/data/geodata/countries.geojson";
@@ -18,11 +17,11 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
   const [countries, setCountries] = useState<{ features: any[] }>({ features: [] });
   const [userInteracted, setUserInteracted] = useState(false);
   const globeEl = useRef<any>(null);
-  // selectedEventForPanel and related logic removed
 
-  const handlePointClick = useCallback((point: object) => {
-    const cluster = point as ClusterData; // Assuming pointsData now only contains ClusterData
-    if (onClusterClick && cluster.isCluster) { // Ensure it's a cluster and handler exists
+  // Renamed handlePointClick to handleObjectClick for clarity with objectsData
+  const handleObjectClick = useCallback((obj: object) => {
+    const cluster = obj as ClusterData; 
+    if (onClusterClick && cluster.isCluster) { 
       onClusterClick(cluster);
     }
   }, [onClusterClick]);
@@ -76,24 +75,41 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     }
   }, [onViewChange, userInteracted]); // userInteracted dependency might not be needed here if it only affects auto-rotate
 
-  // Styling accessors now assume data is ClusterData
-  const getClusterLabel = useCallback((obj: any) => { // Parameter changed to any
-    const cluster = obj as ClusterData; // Cast to ClusterData
-    return `Cluster: ${cluster.count} events`;
-  }, []);
-  
-  const getClusterRadius = useCallback((obj: any) => { // Parameter changed to any
-    const cluster = obj as ClusterData; // Cast to ClusterData
-    if (cluster && typeof cluster.count === 'number') {
-      // Reverted to slightly larger radius scaling
-      return Math.log2(cluster.count + 1) * 0.1 + 0.1; 
+  // Function to create the 3D object for each cluster
+  const createClusterObject = useCallback((obj: any) => {
+    const cluster = obj as ClusterData;
+    if (!cluster || typeof cluster.count !== 'number') {
+      return new Mesh(); // Return an empty mesh if data is invalid
     }
-    return 0.1; // Default radius
+
+    const MAX_HEIGHT = 10.0; // Max height for a spike (e.g., 20% of globe radius)
+    const MIN_HEIGHT = 0.5;  // Min height for a spike (e.g., 0.5% of globe radius)
+    const BASE_RADIUS = Math.log2(cluster.count + 1) * 0.05 + 0.05; 
+
+    let rawHeight = Math.log10(cluster.count + 1) * 10.0; // Significantly increased multiplier
+    let finalHeight = Math.max(MIN_HEIGHT, Math.min(rawHeight, MAX_HEIGHT));
+
+    if (cluster.count > 1) { // Log only for clusters with more than 1 event to reduce noise
+        console.log(`Cluster count: ${cluster.count}, BaseRadius: ${BASE_RADIUS.toFixed(3)}, RawHeight: ${rawHeight.toFixed(3)}, FinalHeight: ${finalHeight.toFixed(3)}`);
+    }
+    
+    // Changed radiusTop from BASE_RADIUS to 0 to make a cone (spike)
+    const geometry = new CylinderGeometry(0, BASE_RADIUS, finalHeight, 8); 
+    const material = new MeshBasicMaterial({ color: 'orange', opacity: 0.75, transparent: true });
+    
+    const mesh = new Mesh(geometry, material);
+    // Position the base of the cylinder on the globe surface
+    // The object's altitude is handled by objectAltitude prop or default behavior
+    // We might need to shift it up by height/2 if origin is center
+    mesh.translateY(finalHeight / 2); // Use finalHeight here
+    mesh.rotation.x = Math.PI / 2; // Orient cylinder to stand up if default is along Y
+
+    return mesh;
   }, []);
 
-  // Reverted to simple orange color for all clusters
-  const getClusterColor = useCallback(() => {
-    return 'rgba(255, 165, 0, 0.75)'; // Orange for all clusters
+  const getObjectLabel = useCallback((obj: any) => {
+    const cluster = obj as ClusterData;
+    return `Cluster: ${cluster.count} events`;
   }, []);
 
   return (
@@ -106,17 +122,15 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
         polygonSideColor={() => "rgba(71, 85, 105, 0.7)"}
         polygonStrokeColor={() => "#4A5568"}
         polygonLabel={() => ''}
-        pointsData={clusters}
-        pointLat="lat"
-        pointLng="lon"
-        pointAltitude={0.03} // Clusters slightly off surface
-        pointLabel={getClusterLabel}
-        pointColor={getClusterColor}
-        pointRadius={getClusterRadius}
-        onPointClick={handlePointClick} // This now calls onClusterClick prop
-        pointsTransitionDuration={0} // Make point changes instant
+        objectsData={clusters} // Changed from pointsData
+        objectLat="lat"        // Changed from pointLat
+        objectLng="lon"        // Changed from pointLng
+        objectAltitude={0.01}  // Altitude for the base of the object
+        objectThreeObject={createClusterObject}
+        objectLabel={getObjectLabel}
+        onObjectClick={handleObjectClick} // Changed from onPointClick
+        // pointsTransitionDuration={0} // Not directly applicable to custom objects in the same way
       />
-      {/* EventDetailPanel is now rendered in App.tsx */}
     </div>
   );
 };
