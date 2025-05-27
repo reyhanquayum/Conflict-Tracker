@@ -62,7 +62,8 @@ function App() {
   const [overallSummaryData, setOverallSummaryData] = useState<OverallSummaryData | null>(null);
   const [showInfoModal, setShowInfoModal] = useState(true); // Initial state, will be updated
   const [webGLSupported, setWebGLSupported] = useState(true); 
-  const [dontShowAgain, setDontShowAgain] = useState(false); // For "Don't show again" checkbox
+  const [dontShowAgain, setDontShowAgain] = useState(false); 
+  const [isTimelineFocused, setIsTimelineFocused] = useState(false); // For timeline opacity
 
 
   useEffect(() => {
@@ -239,6 +240,9 @@ function App() {
     setDetailedEventsInCluster(null);
   };
 
+  const handleTimelineInteractionStart = () => setIsTimelineFocused(true);
+  const handleTimelineInteractionEnd = () => setIsTimelineFocused(false);
+
   const handleInfoModalOpenChange = (open: boolean) => {
     setShowInfoModal(open);
     if (!open && dontShowAgain) { // If dialog is closing and checkbox was checked
@@ -269,13 +273,21 @@ function App() {
         onClusterClick={handleClusterClick}
       />
       {dataRangeLoaded && currentYearRange && (
-        <TimelineSlider
-          minYear={minYear}
-          maxYear={maxYear}
-          valueStartYear={currentYearRange.start}
-          valueEndYear={currentYearRange.end}
-          onYearRangeChange={handleYearRangeChange}
-        />
+        <div 
+          className={`timeline-container absolute bottom-0 left-0 right-0 z-20 p-4 transition-opacity duration-300 ease-in-out ${
+            isTimelineFocused ? 'opacity-100' : 'opacity-60 hover:opacity-90'
+          }`}
+        >
+          <TimelineSlider
+            minYear={minYear}
+            maxYear={maxYear}
+            valueStartYear={currentYearRange.start}
+            valueEndYear={currentYearRange.end}
+            onYearRangeChange={handleYearRangeChange}
+            onBeforeChange={handleTimelineInteractionStart} // rc-slider prop
+            onAfterChange={handleTimelineInteractionEnd}   // rc-slider prop
+          />
+        </div>
       )}
       <div className="absolute top-4 left-4 z-30 flex items-start space-x-2">
         {dataRangeLoaded && currentYearRange && isDashboardVisible && (
