@@ -236,6 +236,53 @@ connectDB().then(() => {
     }
   });
 
+  // New Endpoint: GET /api/events/summary - Get aggregated data for dashboard overview
+  app.get('/api/events/summary', async (req, res) => {
+    if (!db) {
+      return res.status(503).json({ error: "Database not connected" });
+    }
+    try {
+      const { startYear, endYear } = req.query;
+      const sYear = parseInt(startYear, 10);
+      const eYear = parseInt(endYear, 10);
+
+      if (isNaN(sYear) || isNaN(eYear)) {
+        return res.status(400).json({ error: "Valid startYear and endYear are required." });
+      }
+
+      const eventsCollection = db.collection('events');
+      const baseQuery = { year: { $gte: sYear, $lte: eYear } };
+
+      // Aggregation 1: Counts by year
+      const byYearPipeline = [
+        { $match: baseQuery },
+        { $group: { _id: "$year", count: { $sum: 1 } } },
+        { $project: { _id: 0, year: { $toString: "$_id" }, count: 1 } }, // Ensure year is string
+        { $sort: { year: 1 } }
+      ];
+      const summaryByYear = await eventsCollection.aggregate(byYearPipeline).toArray();
+
+      // Aggregation 2: Counts by group
+      const byGroupPipeline = [
+        { $match: baseQuery },
+        { $group: { _id: "$group", count: { $sum: 1 } } },
+        { $project: { _id: 0, group: "$_id", count: 1 } },
+        { $sort: { count: -1 } } // Optionally sort by count
+      ];
+      const summaryByGroup = await eventsCollection.aggregate(byGroupPipeline).toArray();
+      
+      console.log(`Returning summary for ${sYear}-${eYear}: ${summaryByYear.length} year entries, ${summaryByGroup.length} group entries.`);
+      res.json({
+        byYear: summaryByYear,
+        byGroup: summaryByGroup
+      });
+
+    } catch (error) {
+      console.error("Error fetching event summary:", error);
+      res.status(500).json({ error: "Failed to fetch event summary" });
+    }
+  });
+
 
   app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);

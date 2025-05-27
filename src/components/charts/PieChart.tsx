@@ -1,9 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { EventData } from '@/types'; // Import from centralized types
+import type { EventData, GroupCount } from '@/types'; 
+
+// Type guard to check if data is EventData[]
+function isEventDataArrayForPie(data: EventData[] | GroupCount[]): data is EventData[] {
+  // Check if the first element has a 'date' property, typical of EventData
+  return data.length > 0 && (data[0] as EventData).date !== undefined;
+}
 
 interface PieChartProps {
-  data: EventData[];
+  data: EventData[] | GroupCount[];
   width?: number;
   height?: number;
 }
@@ -44,16 +50,23 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
       return;
     }
 
-    // Aggregate data: Count events per group (using 'group' field which is actor1)
-    const countsByGroup = d3.rollup(
-      data,
-      v => v.length,
-      d => d.group 
-    );
+    let aggregatedData: { group: string, count: number }[];
+
+    if (isEventDataArrayForPie(data)) {
+      // Aggregate EventData[]: Count events per group
+      const countsByGroup = d3.rollup(
+        data, // data is EventData[]
+        v => v.length,
+        d => d.group // d is EventData
+      );
+      aggregatedData = Array.from(countsByGroup, ([group, count]) => ({ group, count }));
+    } else {
+      // Data is already GroupCount[]
+      aggregatedData = [...data]; // data is GroupCount[]
+    }
 
     // Sort groups by count, take top N (e.g., top 7) and group others into "Other"
-    const sortedGroups = Array.from(countsByGroup, ([group, count]) => ({ group, count }))
-      .sort((a, b) => b.count - a.count);
+    const sortedGroups = [...aggregatedData].sort((a, b) => b.count - a.count);
 
     const TOP_N_GROUPS = 7;
     let chartData;

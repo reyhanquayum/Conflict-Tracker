@@ -1,21 +1,32 @@
 import React from "react";
 import BarChart from "@/components/charts/BarChart";
-import PieChart from "@/components/charts/PieChart"; // Import PieChart
-import type { EventData } from "@/types"; // Import from centralized types
-// We might use shadcn/ui Card component here later
-// import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import PieChart from "@/components/charts/PieChart"; 
+import type { EventData, OverallSummaryData, YearlyCount, GroupCount } from "@/types"; 
 
 interface DashboardPanelProps {
   totalFilteredEvents?: number;
   currentYearRange?: { start: number; end: number };
-  eventsData: EventData[]; // Add eventsData prop
+  detailedEventsData: EventData[] | null;      // Data for when a cluster is selected
+  overallSummaryData: OverallSummaryData | null; // Data for overview
+  isClusterSelected: boolean;                   // Flag to determine which data to use
 }
 
 const DashboardPanel: React.FC<DashboardPanelProps> = ({
   totalFilteredEvents,
   currentYearRange,
-  eventsData,
+  detailedEventsData,
+  overallSummaryData,
+  isClusterSelected,
 }) => {
+  // Determine data for charts based on whether a cluster is selected
+  const barChartData = isClusterSelected 
+    ? (detailedEventsData || []) // Use detailed events if cluster selected (pass as EventData[])
+    : (overallSummaryData ? overallSummaryData.byYear : []); // Use summary byYear if overview (pass as YearlyCount[])
+  
+  const pieChartData = isClusterSelected
+    ? (detailedEventsData || []) // Use detailed events if cluster selected (pass as EventData[])
+    : (overallSummaryData ? overallSummaryData.byGroup : []); // Use summary byGroup if overview (pass as GroupCount[])
+
   return (
     // Changed background to slate-900 for a darker navy/charcoal feel.
     <div className="w-auto max-w-md bg-slate-900 text-slate-100 p-4 shadow-lg rounded-lg overflow-y-auto max-h-[calc(100vh-2rem)]">
@@ -42,12 +53,10 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
           (More statistics will be shown here)
         </p> */}
         <div>
-          <BarChart data={eventsData} width={350} height={200} />
-          {/* Adjust width/height as needed */}
+          <BarChart data={barChartData} width={350} height={200} />
         </div>
         <div>
-          <PieChart data={eventsData} width={350} height={250} />
-          {/* Adjust width/height as needed, pie might need more height for labels */}
+          <PieChart data={pieChartData} width={350} height={250} />
         </div>
       </div>
     </div>

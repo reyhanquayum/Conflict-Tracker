@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from "react"; // Added useRef
+import React, { useState, useEffect, useCallback, useRef } from "react"; 
 import GlobeDisplay from "./components/visualization/GlobeDisplay";
 import TimelineSlider from "./components/ui/TimelineSlider";
 import DashboardPanel from "./components/ui/DashboardPanel";
-import EventDetailPanel from "./components/ui/EventDetailPanel"; // Import EventDetailPanel
+import EventDetailPanel from "./components/ui/EventDetailPanel"; 
 import { Button } from "@/components/ui/button";
 import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
-import type { EventData, ClusterData, MapView, EventOrClusterData } from "@/types"; // EventOrClusterData might not be needed if displayData is always ClusterData[]
+import type { EventData, ClusterData, MapView, OverallSummaryData } from "@/types"; // Added OverallSummaryData
 
 const API_BASE_URL = "http://localhost:3001";
 
@@ -31,6 +31,8 @@ function App() {
   const [detailedEventsInCluster, setDetailedEventsInCluster] = useState<EventData[] | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<ClusterData | null>(null);
   const [isLoadingClusterDetails, setIsLoadingClusterDetails] = useState(false);
+  // State for overall summary data for dashboard when no cluster is selected
+  const [overallSummaryData, setOverallSummaryData] = useState<OverallSummaryData | null>(null);
 
 
   // Fetch min/max year range for the slider
@@ -93,6 +95,25 @@ function App() {
         });
     }
   }, [currentYearRange, dataRangeLoaded, mapView]);
+
+  // Fetch overall summary data when currentYearRange changes
+  useEffect(() => {
+    if (currentYearRange && dataRangeLoaded) {
+      const { start, end } = currentYearRange;
+      const summaryApiUrl = `${API_BASE_URL}/api/events/summary?startYear=${start}&endYear=${end}`;
+      console.log(`Fetching overall summary data from: ${summaryApiUrl}`);
+      fetch(summaryApiUrl)
+        .then(res => res.json())
+        .then((data: OverallSummaryData) => {
+          setOverallSummaryData(data);
+          console.log(`Received overall summary data: ${data.byYear.length} years, ${data.byGroup.length} groups.`);
+        })
+        .catch(err => {
+          console.error("Error loading overall summary data:", err);
+          setOverallSummaryData(null);
+        });
+    }
+  }, [currentYearRange, dataRangeLoaded]);
 
   const handleYearRangeChange = useCallback((startYear: number, endYear: number) => {
     setCurrentYearRange({ start: startYear, end: endYear });
@@ -174,11 +195,15 @@ function App() {
       <div className="absolute top-4 left-4 z-30 flex items-start space-x-2">
         {dataRangeLoaded && currentYearRange && isDashboardVisible && ( 
           <DashboardPanel
-            // Dashboard now might show cluster counts or details of a selected cluster's events
-            totalFilteredEvents={detailedEventsInCluster ? detailedEventsInCluster.length : clusterDisplayData.reduce((sum, c) => sum + c.count, 0)}
+            totalFilteredEvents={
+              selectedCluster 
+                ? (detailedEventsInCluster ? detailedEventsInCluster.length : 0) 
+                : (overallSummaryData ? overallSummaryData.byYear.reduce((sum, y) => sum + y.count, 0) : clusterDisplayData.reduce((sum, c) => sum + c.count, 0))
+            }
             currentYearRange={currentYearRange}
-            // Pass detailed events if available, otherwise maybe an empty array or aggregated cluster data for charts
-            eventsData={detailedEventsInCluster || []} 
+            detailedEventsData={detailedEventsInCluster} // For when a cluster is selected
+            overallSummaryData={overallSummaryData}     // For overview
+            isClusterSelected={!!selectedCluster}       // To help DashboardPanel decide
           />
         )}
         <Button

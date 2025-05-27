@@ -44,3 +44,19 @@ export interface MapView {
   // Optionally add bounds if needed:
   // bounds?: { minLat: number, minLng: number, maxLat: number, maxLng: number };
 }
+
+// For overall dashboard summary data
+export interface YearlyCount {
+  year: string; // Year as a string e.g., "2020"
+  count: number;
+}
+
+export interface GroupCount {
+  group: string;
+  count: number;
+}
+
+export interface OverallSummaryData {
+  byYear: YearlyCount[];
+  byGroup: GroupCount[];
+}

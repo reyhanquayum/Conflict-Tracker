@@ -1,11 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { EventData } from '@/types'; // Import from centralized types
+import type { EventData, YearlyCount } from '@/types'; 
+
+// Type guard to check if data is EventData[]
+function isEventDataArray(data: EventData[] | YearlyCount[]): data is EventData[] {
+  // Check if the first element has a 'date' property, typical of EventData
+  // and not present in YearlyCount. Assumes non-empty array for this check.
+  return data.length > 0 && (data[0] as EventData).date !== undefined;
+}
 
 interface BarChartProps {
-  data: EventData[]; // Or a more specific aggregated data structure
-  // Example: data could be [{ year: string, count: number }, ...]
-  // For now, we'll assume we need to process EventData to get counts by year
+  data: EventData[] | YearlyCount[]; 
   width?: number;
   height?: number;
 }
@@ -22,19 +27,25 @@ const BarChart: React.FC<BarChartProps> = ({ data, width = 400, height = 300 }) 
       return;
     }
 
-    // Aggregate data: Count events per year
-    const countsByYear = d3.rollup(
-      data,
-      v => v.length, // count occurrences
-      // Assuming date format is like "DD Month YYYY", extract the year
-      d => {
-        const parts = d.date.split(' ');
-        return parts.length > 2 ? parts[parts.length - 1] : "Unknown"; // Get last part (year)
-      }
-    );
+    let processedData: YearlyCount[];
 
-    const processedData = Array.from(countsByYear, ([year, count]) => ({ year, count }))
-      .sort((a, b) => parseInt(a.year) - parseInt(b.year)); // Sort by year
+    if (isEventDataArray(data)) {
+      // Aggregate EventData[]: Count events per year
+      const countsByYear = d3.rollup(
+        data, // data is EventData[] here
+        v => v.length, 
+        d => { // d is EventData
+          const parts = d.date.split(' ');
+          return parts.length > 2 ? parts[parts.length - 1] : "Unknown"; 
+        }
+      );
+      processedData = Array.from(countsByYear, ([year, count]) => ({ year, count }))
+        .sort((a, b) => parseInt(a.year) - parseInt(b.year));
+    } else {
+      // Data is already YearlyCount[], just sort it
+      // Ensure year is string for sorting, though it should be from API
+      processedData = [...data].sort((a, b) => parseInt(String(a.year)) - parseInt(String(b.year)));
+    }
 
     if (processedData.length === 0) {
         if (svgRef.current) {
