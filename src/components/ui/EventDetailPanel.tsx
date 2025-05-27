@@ -1,5 +1,6 @@
 import React from 'react';
 import type { EventData, ClusterData } from '@/types';
+import ExpandableText from './ExpandableText'; // Import ExpandableText
 
 interface EventDetailPanelProps {
   cluster: ClusterData | null; // The selected cluster
@@ -45,9 +46,7 @@ const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ cluster, events, is
               <p><strong className="text-slate-300">Group:</strong> {event.group}</p>
               <p><strong className="text-slate-300">Type:</strong> {event.type}</p>
               {event.description && (
-                <p className="mt-1 text-slate-400 whitespace-pre-wrap break-words">
-                  {event.description.substring(0, 100)}{event.description.length > 100 ? '...' : ''}
-                </p>
+                <ExpandableText text={event.description} maxLength={100} />
               )}
             </div>
           ))}

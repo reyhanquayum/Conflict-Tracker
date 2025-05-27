@@ -89,9 +89,9 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     let rawHeight = Math.log10(cluster.count + 1) * 10.0; // Significantly increased multiplier
     let finalHeight = Math.max(MIN_HEIGHT, Math.min(rawHeight, MAX_HEIGHT));
 
-    if (cluster.count > 1) { // Log only for clusters with more than 1 event to reduce noise
-        console.log(`Cluster count: ${cluster.count}, BaseRadius: ${BASE_RADIUS.toFixed(3)}, RawHeight: ${rawHeight.toFixed(3)}, FinalHeight: ${finalHeight.toFixed(3)}`);
-    }
+    // if (cluster.count > 1) { // Temporarily commented out to reduce console noise
+        // console.log(`Cluster count: ${cluster.count}, BaseRadius: ${BASE_RADIUS.toFixed(3)}, RawHeight: ${rawHeight.toFixed(3)}, FinalHeight: ${finalHeight.toFixed(3)}`);
+    // }
     
     // Changed radiusTop from BASE_RADIUS to 0 to make a cone (spike)
     const geometry = new CylinderGeometry(0, BASE_RADIUS, finalHeight, 8); 
