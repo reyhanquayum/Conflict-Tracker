@@ -25,12 +25,12 @@ const ExpandableText: React.FC<ExpandableTextProps> = ({ text, maxLength = 100 }
       <p className="whitespace-pre-wrap break-words">
         {isExpanded ? text : `${text.substring(0, maxLength)}...`}
       </p>
-      <button 
+      <span 
         onClick={toggleExpanded} 
-        className="text-sky-400 hover:text-sky-300 text-xs mt-1"
+        className="text-blue-400 hover:text-blue-300 hover:underline text-xs mt-1 cursor-pointer"
       >
         {isExpanded ? 'Read Less' : 'Read More'}
-      </button>
+      </span>
     </div>
   );
 };
