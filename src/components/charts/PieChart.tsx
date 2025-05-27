@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { EventData } from '@/components/visualization/GlobeDisplay';
+import type { EventData } from '@/types'; // Import from centralized types
 
 interface PieChartProps {
   data: EventData[];

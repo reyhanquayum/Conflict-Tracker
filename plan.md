@@ -45,12 +45,17 @@
         *   Insert/derive group data into a `groups` collection.
         *   Define and create indexes (e.g., `events`: on `year`, `date`; `groups`: on `name`).
     *   Run this script once to populate the database.
-*   **Task 1.B.4: Develop Backend API Endpoints (Node.js/Express.js)**
+    *   **Task 1.B.4: Develop Backend API Endpoints (Node.js/Express.js)**
     *   In the `/server` project:
-    *   **Event Data Endpoint:** `GET /api/events`
-        *   Accept query params: `startYear` (number), `endYear` (number), `limit` (number, e.g., default 2000).
-        *   Query MongoDB `events` collection.
-        *   Return JSON results.
+    *   **Event Data / Clustering Endpoint:** `GET /api/events`
+        *   Accept query params: `startYear` (number), `endYear` (number), `zoomLevel` (number, optional), `mapBounds` (string, optional, e.g., "minLng,minLat,maxLng,maxLat").
+        *   If `zoomLevel` is low or event density within `mapBounds` is high:
+            *   Perform server-side clustering/aggregation (e.g., grid-based or simple geographic grouping).
+            *   Return an array of cluster objects: `[{ lat, lng, count, isCluster: true, clusterId? (optional) }]`.
+        *   Else (high zoom or low density):
+            *   Query MongoDB `events` collection for individual events within `mapBounds` and year range.
+            *   Apply a reasonable limit (e.g., 2000-5000) or use `$sample` if still too many.
+            *   Return an array of individual event objects: `[{ _id, lat, lng, group, ..., isCluster: false }]`.
     *   **Configuration Endpoint:** `GET /api/config/datarange`
         *   Query `events` collection for min/max year.
         *   Return `{ minYear, maxYear }` as JSON.
@@ -69,12 +74,17 @@
     *   Source GeoJSON for world countries (e.g., Natural Earth) and place in `public/data/geodata/countries.geojson`.
     *   `GlobeDisplay` fetches this static GeoJSON.
     *   Configure `react-globe.gl` for country polygons, styling (minimalist dark-mode), and basic interactions.
-*   **Task 2.3: Geospatial Data for Event Markers (via API)**
-    *   `App.tsx` will fetch event data from `/api/events` based on `TimelineSlider` range.
-    *   This fetched (and already filtered by backend) data will be passed to `GlobeDisplay`.
-*   **Task 2.4: Render Event Markers (Spikes/Pins) on `react-globe.gl`**
-    *   `GlobeDisplay` uses the `events` prop (from `App.tsx`) for `react-globe.gl`'s `pointsData` (or `objectsData` for custom meshes).
-    *   Style these markers.
+*   **Task 2.3: Geospatial Data for Event Markers/Clusters (via API)**
+    *   `App.tsx` will fetch data from `/api/events` based on `TimelineSlider` range AND current map view (zoom/bounds) from `GlobeDisplay`.
+    *   This fetched data (either individual events or clusters) will be passed to `GlobeDisplay`.
+*   **Task 2.4: Render Event Markers or Clusters on `react-globe.gl`**
+    *   `GlobeDisplay` uses the `data` prop (from `App.tsx`) for `react-globe.gl`'s `pointsData`.
+    *   Dynamically style points based on `isCluster` property:
+        *   If `isCluster: true`, style as a cluster (e.g., larger point, color/size based on `count`).
+        *   If `isCluster: false`, style as an individual event marker.
+    *   Implement `onPointClick` in `GlobeDisplay`:
+        *   If clicked point `isCluster: true`: Zoom the globe view into the cluster's area (e.g., using `globeEl.current.pointOfView()`). This will trigger `App.tsx` to refetch data with new map bounds/zoom from the API.
+        *   If clicked point `isCluster: false`: Show the `EventDetailPanel` with event details.
 
 ---
 

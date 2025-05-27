@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { EventData } from '@/components/visualization/GlobeDisplay'; // Assuming EventData might be useful
+import type { EventData } from '@/types'; // Import from centralized types
 
 interface BarChartProps {
   data: EventData[]; // Or a more specific aggregated data structure

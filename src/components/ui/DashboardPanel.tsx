@@ -1,7 +1,7 @@
 import React from "react";
 import BarChart from "@/components/charts/BarChart";
 import PieChart from "@/components/charts/PieChart"; // Import PieChart
-import type { EventData } from "@/components/visualization/GlobeDisplay";
+import type { EventData } from "@/types"; // Import from centralized types
 // We might use shadcn/ui Card component here later
 // import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 

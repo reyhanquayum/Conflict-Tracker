@@ -95,9 +95,15 @@ def main():
     events_df['group2'] = events_df['group2'].apply(clean_actor_name)
     events_df['group'] = events_df['group1'] # Primary group for quick access
 
-    # Prepare for MongoDB: convert lat/lon to GeoJSON Point for geospatial queries if desired later
-    # For now, keeping them as numbers. If using $nearSphere, they need to be in a GeoJSON Point.
-    # Example: events_df['location_geo'] = events_df.apply(lambda row: {"type": "Point", "coordinates": [row['lon'], row['lat']]}, axis=1)
+    # Create GeoJSON Point for location
+    print("Creating GeoJSON Point for locations...")
+    events_df['location_geo'] = events_df.apply(
+        lambda row: {"type": "Point", "coordinates": [float(row['lon']), float(row['lat'])]} 
+        if pd.notnull(row['lon']) and pd.notnull(row['lat']) else None, 
+        axis=1
+    )
+    # Drop rows where location_geo could not be created (e.g. if lat/lon were originally NaN even after first dropna)
+    events_df.dropna(subset=['location_geo'], inplace=True)
 
 
     # Convert DataFrame to list of dictionaries for MongoDB insertion
@@ -171,7 +177,7 @@ def main():
         events_collection.create_index([("year", ASCENDING)])
         events_collection.create_index([("date_obj", DESCENDING)])
         events_collection.create_index([("group", ASCENDING)])
-        # If using geospatial queries: events_collection.create_index([("location_geo", "2dsphere")])
+        events_collection.create_index([("location_geo", "2dsphere")]) # Add 2dsphere index
         print(f"Indexes created for '{EVENTS_COLLECTION_NAME}'.")
         
         groups_collection.create_index([("name", ASCENDING)], unique=True)

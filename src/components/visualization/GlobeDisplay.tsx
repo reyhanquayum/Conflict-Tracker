@@ -1,70 +1,40 @@
-import React, { useEffect, useState, useRef, useCallback } from "react"; // Added useCallback
+import React, { useEffect, useState, useRef, useCallback } from "react"; // Removed useMemo
 import Globe from "react-globe.gl";
 import { Color } from "three";
-import EventDetailPanel from "@/components/ui/EventDetailPanel";
-// import centroid from '@turf/centroid'; // Removed turf centroid import
+// import * as d3 from 'd3'; // Removed D3 import
+import type { ClusterData, MapView } from "@/types"; 
 
 const GEOJSON_FILE_URL = "/data/geodata/countries.geojson";
 
-export interface EventData {
-  id: string;
-  lat: number;
-  lon: number;
-  group: string;
-  type: string;
-  date: string;
-  description?: string;
-}
+// Type guards are no longer needed here as this component only deals with clusters now
 
 interface GlobeDisplayProps {
-  events: EventData[];
+  clusters: ClusterData[]; // Renamed prop from 'events' to 'clusters'
+  onViewChange?: (view: MapView) => void;
+  onClusterClick?: (cluster: ClusterData) => void; // New prop for cluster clicks
 }
 
-const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ events }) => {
-  const [countries, setCountries] = useState<{ features: any[] }>({
-    features: [],
-  });
-  // const [labelsData, setLabelsData] = useState<any[]>([]); // Removed labelsData state
+const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onClusterClick }) => {
+  const [countries, setCountries] = useState<{ features: any[] }>({ features: [] });
   const [userInteracted, setUserInteracted] = useState(false);
-  const [cameraDistance, setCameraDistance] = useState(350); // Initial default camera distance - kept for potential future use
   const globeEl = useRef<any>(null);
-
-  const [selectedEventForPanel, setSelectedEventForPanel] =
-    useState<EventData | null>(null);
+  // selectedEventForPanel and related logic removed
 
   const handlePointClick = useCallback((point: object) => {
-    const event = point as EventData;
-    setSelectedEventForPanel(event);
-  }, []); // Memoize with useCallback
-
-  const handleClosePanel = useCallback(() => {
-    setSelectedEventForPanel(null);
-  }, []); // Memoize with useCallback
+    const cluster = point as ClusterData; // Assuming pointsData now only contains ClusterData
+    if (onClusterClick && cluster.isCluster) { // Ensure it's a cluster and handler exists
+      onClusterClick(cluster);
+    }
+  }, [onClusterClick]);
 
   useEffect(() => {
     fetch(GEOJSON_FILE_URL)
       .then((res) => res.json())
-      .then((data) => {
-        if (data && data.features && data.features.length > 0) {
-          console.log(
-            "First GeoJSON feature properties:",
-            data.features[0].properties
-          );
-          setCountries(data); 
-          // Removed label processing logic
-        } else {
-          console.error(
-            "GeoJSON data or features array is missing or invalid:",
-            data
-          );
-        }
-      })
+      .then((data) => setCountries(data))
       .catch((err) => console.error("Error loading GeoJSON:", err));
   }, []);
 
   useEffect(() => {
-    // Removed logging for labelsData
-
     const globe = globeEl.current;
     if (globe) {
       if (globe.scene) {
@@ -72,11 +42,10 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ events }) => {
       }
       if (!userInteracted) {
         globe.controls().autoRotate = true;
-        globe.controls().autoRotateSpeed = 0.15; // Slightly slower rotation
+        globe.controls().autoRotateSpeed = 0.15;
       } else {
         globe.controls().autoRotate = false;
       }
-
       const controls = globe.controls();
       const handleInteractionStart = () => {
         if (!userInteracted) {
@@ -89,48 +58,46 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ events }) => {
         controls.removeEventListener("start", handleInteractionStart);
       };
     }
-  }, [countries, events, userInteracted]); // Removed labelsData from dependency array
+  }, [userInteracted]);
 
-  // Effect to listen to zoom/camera changes
   useEffect(() => {
     const globe = globeEl.current;
-    if (globe) {
+    if (globe && onViewChange) {
       const controls = globe.controls();
-      const updateCameraDistance = () => {
-        const cameraPosition = globe.camera().position;
-        const distance = cameraPosition.length();
-        setCameraDistance(distance);
-        // console.log('Camera distance from center:', distance); // Keep for debugging if needed
+      const handleViewUpdate = () => {
+        const { lat, lng, altitude } = globe.pointOfView();
+        onViewChange({ lat, lng, altitude });
       };
-      // Set initial distance
-      updateCameraDistance(); 
-      
-      controls.addEventListener('end', updateCameraDistance); // Update on interaction end
+      handleViewUpdate(); // Initial call
+      controls.addEventListener('end', handleViewUpdate);
       return () => {
-        controls.removeEventListener('end', updateCameraDistance);
+        controls.removeEventListener('end', handleViewUpdate);
       };
     }
-  }, [userInteracted, globeEl.current]); // Changed to globeEl.current
+  }, [onViewChange, userInteracted]); // userInteracted dependency might not be needed here if it only affects auto-rotate
 
-  // Memoized label text function
-  const getPointLabel = useCallback((obj: any) => {
-    const event = obj as EventData;
-    return `<b>${event.group}</b><br/>Type: ${event.type}<br/>Date: ${event.date}`;
+  // Styling accessors now assume data is ClusterData
+  const getClusterLabel = useCallback((obj: any) => { // Parameter changed to any
+    const cluster = obj as ClusterData; // Cast to ClusterData
+    return `Cluster: ${cluster.count} events`;
+  }, []);
+  
+  const getClusterRadius = useCallback((obj: any) => { // Parameter changed to any
+    const cluster = obj as ClusterData; // Cast to ClusterData
+    if (cluster && typeof cluster.count === 'number') {
+      // Reverted to slightly larger radius scaling
+      return Math.log2(cluster.count + 1) * 0.1 + 0.1; 
+    }
+    return 0.1; // Default radius
   }, []);
 
-  // const getPolygonLabel = useCallback(({ properties }: any) => { // Removed as polygonLabel will be simplified
-  //   return `<b>${properties.ADMIN}</b> <br />Population: <i>${properties.POP_EST}</i>`;
-  // }, []);
+  // Reverted to simple orange color for all clusters
+  const getClusterColor = useCallback(() => {
+    return 'rgba(255, 165, 0, 0.75)'; // Orange for all clusters
+  }, []);
 
   return (
-    <div
-      style={{
-        position: "relative",
-        height: "100vh",
-        width: "100%",
-        backgroundColor: "#000010",
-      }}
-    >
+    <div style={{ position: 'relative', height: "100vh", width: "100%", backgroundColor: "#000010" }}>
       <Globe
         ref={globeEl}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
@@ -138,30 +105,18 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ events }) => {
         polygonCapColor={() => "rgba(100, 116, 139, 0.9)"}
         polygonSideColor={() => "rgba(71, 85, 105, 0.7)"}
         polygonStrokeColor={() => "#4A5568"}
-        polygonLabel={() => ''} // Disabled polygon hover labels
-        pointsData={events}
+        polygonLabel={() => ''}
+        pointsData={clusters}
         pointLat="lat"
         pointLng="lon"
-        pointAltitude={0.03}
-        pointLabel={getPointLabel}
-        pointColor={() => "rgba(255, 0, 0, 0.75)"} // Slightly transparent red
-        pointRadius={0.15}
-        onPointClick={handlePointClick}
-        // Removed all label-related props:
-        // labelsData={labelsData}
-        // labelLat="lat" 
-        // labelLng="lng" 
-        // labelText="text" 
-        // labelSize={...}
-        // labelColor="color" 
-        // labelDotRadius={0} 
-        // labelResolution={1}
-        // labelAltitude={0.02} 
+        pointAltitude={0.03} // Clusters slightly off surface
+        pointLabel={getClusterLabel}
+        pointColor={getClusterColor}
+        pointRadius={getClusterRadius}
+        onPointClick={handlePointClick} // This now calls onClusterClick prop
+        pointsTransitionDuration={0} // Make point changes instant
       />
-      <EventDetailPanel
-        event={selectedEventForPanel}
-        onClose={handleClosePanel}
-      />
+      {/* EventDetailPanel is now rendered in App.tsx */}
     </div>
   );
 };

@@ -1,29 +1,38 @@
 import React, { useState, useEffect, useCallback } from "react";
 import GlobeDisplay from "./components/visualization/GlobeDisplay";
-import type { EventData } from "./components/visualization/GlobeDisplay";
 import TimelineSlider from "./components/ui/TimelineSlider";
 import DashboardPanel from "./components/ui/DashboardPanel";
-import { Button } from "@/components/ui/button"; // Import shadcn Button
-import { PanelLeftOpen, PanelRightOpen } from "lucide-react"; // Reverted to original icons with arrows
+import EventDetailPanel from "./components/ui/EventDetailPanel"; // Import EventDetailPanel
+import { Button } from "@/components/ui/button";
+import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
+import type { EventData, ClusterData, MapView, EventOrClusterData } from "@/types"; // EventOrClusterData might not be needed if displayData is always ClusterData[]
 
-const API_BASE_URL = "http://localhost:3001"; // Or your backend server port
-const MAX_DISPLAY_POINTS = 2000; // Max points to fetch/display for performance
+const API_BASE_URL = "http://localhost:3001";
 
-// Helper to extract year from YYYY-MM-DD date string - might not be needed if API handles it
-// const getYearFromDate = (dateString: string): number => { ... };
+// Type guard for ClusterData (already in types, but good for clarity if used here)
+// function isClusterItem(item: any): item is ClusterData {
+//   return item && item.isCluster === true;
+// }
 
 function App() {
-  const [filteredEvents, setFilteredEvents] = useState<EventData[]>([]);
-  const [minYear, setMinYear] = useState(0); // Will be set from API
-  const [maxYear, setMaxYear] = useState(0); // Will be set from API
+  const [clusterDisplayData, setClusterDisplayData] = useState<ClusterData[]>([]); // Holds clusters for the globe
+  const [minYear, setMinYear] = useState(0);
+  const [maxYear, setMaxYear] = useState(0);
   const [currentYearRange, setCurrentYearRange] = useState<{
     start: number;
     end: number;
   } | null>(null);
   const [dataRangeLoaded, setDataRangeLoaded] = useState(false);
-  const [isDashboardVisible, setIsDashboardVisible] = useState(true); // State for dashboard visibility
+  const [isDashboardVisible, setIsDashboardVisible] = useState(true);
+  const [mapView, setMapView] = useState<MapView | null>(null);
 
-  // Step 1: Fetch min/max year range for the slider
+  // State for events within a selected cluster
+  const [detailedEventsInCluster, setDetailedEventsInCluster] = useState<EventData[] | null>(null);
+  const [selectedCluster, setSelectedCluster] = useState<ClusterData | null>(null);
+  const [isLoadingClusterDetails, setIsLoadingClusterDetails] = useState(false);
+
+
+  // Fetch min/max year range for the slider
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/config/datarange`)
       .then((res) => res.json())
@@ -33,83 +42,129 @@ function App() {
           setMaxYear(data.maxYear);
           setCurrentYearRange({ start: data.minYear, end: data.maxYear });
           setDataRangeLoaded(true);
-        } else {
-          // Fallback if API doesn't return valid range
+        } else { /* ... error handling ... */ 
           console.error("Failed to fetch valid data range from API.");
           const currentSystemYear = new Date().getFullYear();
-          setMinYear(1990); // Default
-          setMaxYear(currentSystemYear);
+          setMinYear(1990); setMaxYear(currentSystemYear);
           setCurrentYearRange({ start: 1990, end: currentSystemYear });
-          setDataRangeLoaded(true); // Allow UI to proceed with defaults
+          setDataRangeLoaded(true);
         }
       })
-      .catch((err) => {
+      .catch((err) => { /* ... error handling ... */ 
         console.error("Error loading data range from API:", err);
-        // Fallback on error
         const currentSystemYear = new Date().getFullYear();
-        setMinYear(1990);
-        setMaxYear(currentSystemYear);
+        setMinYear(1990); setMaxYear(currentSystemYear);
         setCurrentYearRange({ start: 1990, end: currentSystemYear });
         setDataRangeLoaded(true);
       });
-  }, []); // Runs once on mount
+  }, []);
 
-  // Step 2: Fetch events when currentYearRange is set or changes
+  // Fetch clusters when currentYearRange or mapView (for zoom/center) changes
   useEffect(() => {
     if (currentYearRange && dataRangeLoaded) {
       const { start, end } = currentYearRange;
-      console.log(`Fetching events for range: ${start} - ${end}`);
-      fetch(
-        `${API_BASE_URL}/api/events?startYear=${start}&endYear=${end}&limit=${MAX_DISPLAY_POINTS}`
-      )
+      let apiUrl = `${API_BASE_URL}/api/events?startYear=${start}&endYear=${end}`;
+      
+      let calculatedZoomLevel = 5; // Default for overview
+      if (mapView) { // Pass mapView details to get appropriate cluster granularity
+        if (mapView.altitude < 0.5) calculatedZoomLevel = 15;
+        else if (mapView.altitude < 1.0) calculatedZoomLevel = 12;
+        else if (mapView.altitude < 1.5) calculatedZoomLevel = 9;
+        else if (mapView.altitude < 2.0) calculatedZoomLevel = 7;
+        apiUrl += `&zoomLevel=${calculatedZoomLevel}`;
+        apiUrl += `&centerLat=${mapView.lat}&centerLng=${mapView.lng}`;
+        console.log(`[App] Requesting CLUSTERS. Altitude: ${mapView.altitude.toFixed(2)}, Zoom: ${calculatedZoomLevel}, Center: ${mapView.lat.toFixed(2)},${mapView.lng.toFixed(2)}`);
+      } else {
+        apiUrl += `&zoomLevel=${calculatedZoomLevel}`; // Initial load zoom
+        console.log(`[App] Initial load, requesting CLUSTERS. Default Zoom: ${calculatedZoomLevel}`);
+      }
+      
+      console.log(`Fetching clusters from: ${apiUrl}`);
+      fetch(apiUrl)
         .then((res) => res.json())
-        .then((data: EventData[]) => {
-          setFilteredEvents(data);
-          console.log(`Received ${data.length} events from API.`);
+        .then((data: ClusterData[]) => { // API now always returns ClusterData[]
+          setClusterDisplayData(data);
+          console.log(`Received ${data.length} clusters from API.`);
         })
         .catch((err) => {
-          console.error("Error loading events from API:", err);
-          setFilteredEvents([]); // Clear events on error
+          console.error("Error loading clusters from API:", err);
+          setClusterDisplayData([]);
         });
     }
-  }, [currentYearRange, dataRangeLoaded]); // Runs when currentYearRange or dataRangeLoaded changes
+  }, [currentYearRange, dataRangeLoaded, mapView]);
 
-  // Callback for when the timeline slider changes
-  const handleYearRangeChange = useCallback(
-    (startYear: number, endYear: number) => {
-      // This function now only updates the currentYearRange state.
-      // The useEffect hook above will then fetch the new data.
-      setCurrentYearRange({ start: startYear, end: endYear });
-    },
-    []
-  ); // No dependencies needed if it only sets state based on its args
+  const handleYearRangeChange = useCallback((startYear: number, endYear: number) => {
+    setCurrentYearRange({ start: startYear, end: endYear });
+    // When year range changes, clear any selected cluster details
+    setSelectedCluster(null);
+    setDetailedEventsInCluster(null);
+  }, []);
+
+  const handleViewChange = useCallback((newView: MapView) => {
+    console.log("Map view changed:", newView);
+    setMapView(newView);
+  }, []);
+
+  const handleClusterClick = useCallback((cluster: ClusterData) => {
+    if (!currentYearRange) return;
+    console.log("Cluster clicked:", cluster);
+    setSelectedCluster(cluster);
+    setIsLoadingClusterDetails(true);
+    setDetailedEventsInCluster(null); // Clear previous details
+
+    // Use cluster.bounds which should be returned by the /api/events endpoint
+    const { minLat, maxLat, minLng, maxLng } = cluster.bounds;
+    const { start, end } = currentYearRange;
+
+    const detailApiUrl = `${API_BASE_URL}/api/events_in_cluster?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&startYear=${start}&endYear=${end}&limit=100`;
+    
+    console.log("Fetching detailed events for cluster:", detailApiUrl);
+    fetch(detailApiUrl)
+      .then(res => res.json())
+      .then((events: EventData[]) => {
+        setDetailedEventsInCluster(events);
+        console.log(`Received ${events.length} detailed events for cluster.`);
+      })
+      .catch(err => {
+        console.error("Error fetching detailed events for cluster:", err);
+        setDetailedEventsInCluster([]); // Set to empty array on error
+      })
+      .finally(() => {
+        setIsLoadingClusterDetails(false);
+      });
+  }, [currentYearRange]);
+
+  const handleCloseDetailPanel = () => {
+    setSelectedCluster(null);
+    setDetailedEventsInCluster(null);
+  };
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100%" }}>
-      <GlobeDisplay events={filteredEvents} />
-      {dataRangeLoaded &&
-        currentYearRange && ( // Only render slider if range is loaded
-          <TimelineSlider
-            minYear={minYear}
-            maxYear={maxYear}
-            valueStartYear={currentYearRange.start}
-            valueEndYear={currentYearRange.end}
+      <GlobeDisplay 
+        clusters={clusterDisplayData} // Corrected prop name to 'clusters'
+        onViewChange={handleViewChange}
+        onClusterClick={handleClusterClick} 
+      />
+      {dataRangeLoaded && currentYearRange && (
+        <TimelineSlider
+          minYear={minYear}
+          maxYear={maxYear}
+          valueStartYear={currentYearRange.start}
+          valueEndYear={currentYearRange.end}
           onYearRangeChange={handleYearRangeChange}
         />
       )}
-      {/* Container for Dashboard Toggle Button and Dashboard Panel */}
       <div className="absolute top-4 left-4 z-30 flex items-start space-x-2">
-        {/* Conditionally render DashboardPanel first if visible */}
-        {dataRangeLoaded &&
-          currentYearRange &&
-          isDashboardVisible && ( 
-            <DashboardPanel
-              totalFilteredEvents={filteredEvents.length}
-              currentYearRange={currentYearRange}
-              eventsData={filteredEvents}
-            />
-          )}
-        {/* Always render the button, icon changes based on visibility */}
+        {dataRangeLoaded && currentYearRange && isDashboardVisible && ( 
+          <DashboardPanel
+            // Dashboard now might show cluster counts or details of a selected cluster's events
+            totalFilteredEvents={detailedEventsInCluster ? detailedEventsInCluster.length : clusterDisplayData.reduce((sum, c) => sum + c.count, 0)}
+            currentYearRange={currentYearRange}
+            // Pass detailed events if available, otherwise maybe an empty array or aggregated cluster data for charts
+            eventsData={detailedEventsInCluster || []} 
+          />
+        )}
         <Button
           variant="outline"
           size="icon"
@@ -117,13 +172,18 @@ function App() {
           onClick={() => setIsDashboardVisible(!isDashboardVisible)}
           aria-label={isDashboardVisible ? "Hide Dashboard" : "Show Dashboard"}
         >
-          {isDashboardVisible ? (
-            <PanelRightOpen className="h-5 w-5" /> // Panel is open, arrow suggests "push left to hide"
-          ) : (
-            <PanelLeftOpen className="h-5 w-5" /> // Panel is closed, arrow suggests "pull open from left to show on right" (of button)
-          )}
+          {isDashboardVisible ? <PanelRightOpen className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
         </Button>
       </div>
+      {/* Display EventDetailPanel with list of events from selected cluster */}
+      {selectedCluster && (
+        <EventDetailPanel 
+          cluster={selectedCluster} 
+          events={detailedEventsInCluster} 
+          isLoading={isLoadingClusterDetails}
+          onClose={handleCloseDetailPanel} 
+        />
+      )}
     </div>
   );
 }
