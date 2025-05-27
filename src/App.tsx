@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import GlobeDisplay from './components/visualization/GlobeDisplay';
-import type { EventData } from './components/visualization/GlobeDisplay';
-import TimelineSlider from './components/ui/TimelineSlider';
-import DashboardPanel from './components/ui/DashboardPanel';
+import React, { useState, useEffect, useCallback } from "react";
+import GlobeDisplay from "./components/visualization/GlobeDisplay";
+import type { EventData } from "./components/visualization/GlobeDisplay";
+import TimelineSlider from "./components/ui/TimelineSlider";
+import DashboardPanel from "./components/ui/DashboardPanel";
+import { Button } from "@/components/ui/button"; // Import shadcn Button
+import { PanelLeftOpen, PanelRightOpen } from "lucide-react"; // Reverted to original icons with arrows
 
-const API_BASE_URL = 'http://localhost:3001'; // Or your backend server port
+const API_BASE_URL = "http://localhost:3001"; // Or your backend server port
 const MAX_DISPLAY_POINTS = 2000; // Max points to fetch/display for performance
 
 // Helper to extract year from YYYY-MM-DD date string - might not be needed if API handles it
@@ -14,14 +16,18 @@ function App() {
   const [filteredEvents, setFilteredEvents] = useState<EventData[]>([]);
   const [minYear, setMinYear] = useState(0); // Will be set from API
   const [maxYear, setMaxYear] = useState(0); // Will be set from API
-  const [currentYearRange, setCurrentYearRange] = useState<{ start: number; end: number } | null>(null);
+  const [currentYearRange, setCurrentYearRange] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
   const [dataRangeLoaded, setDataRangeLoaded] = useState(false);
+  const [isDashboardVisible, setIsDashboardVisible] = useState(true); // State for dashboard visibility
 
   // Step 1: Fetch min/max year range for the slider
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/config/datarange`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.minYear && data.maxYear) {
           setMinYear(data.minYear);
           setMaxYear(data.maxYear);
@@ -37,7 +43,7 @@ function App() {
           setDataRangeLoaded(true); // Allow UI to proceed with defaults
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Error loading data range from API:", err);
         // Fallback on error
         const currentSystemYear = new Date().getFullYear();
@@ -53,13 +59,15 @@ function App() {
     if (currentYearRange && dataRangeLoaded) {
       const { start, end } = currentYearRange;
       console.log(`Fetching events for range: ${start} - ${end}`);
-      fetch(`${API_BASE_URL}/api/events?startYear=${start}&endYear=${end}&limit=${MAX_DISPLAY_POINTS}`)
-        .then(res => res.json())
+      fetch(
+        `${API_BASE_URL}/api/events?startYear=${start}&endYear=${end}&limit=${MAX_DISPLAY_POINTS}`
+      )
+        .then((res) => res.json())
         .then((data: EventData[]) => {
           setFilteredEvents(data);
           console.log(`Received ${data.length} events from API.`);
         })
-        .catch(err => {
+        .catch((err) => {
           console.error("Error loading events from API:", err);
           setFilteredEvents([]); // Clear events on error
         });
@@ -67,31 +75,55 @@ function App() {
   }, [currentYearRange, dataRangeLoaded]); // Runs when currentYearRange or dataRangeLoaded changes
 
   // Callback for when the timeline slider changes
-  const handleYearRangeChange = useCallback((startYear: number, endYear: number) => {
-    // This function now only updates the currentYearRange state.
-    // The useEffect hook above will then fetch the new data.
-    setCurrentYearRange({ start: startYear, end: endYear });
-  }, []); // No dependencies needed if it only sets state based on its args
+  const handleYearRangeChange = useCallback(
+    (startYear: number, endYear: number) => {
+      // This function now only updates the currentYearRange state.
+      // The useEffect hook above will then fetch the new data.
+      setCurrentYearRange({ start: startYear, end: endYear });
+    },
+    []
+  ); // No dependencies needed if it only sets state based on its args
 
   return (
-    <div style={{ position: 'relative', height: '100vh', width: '100%' }}>
+    <div style={{ position: "relative", height: "100vh", width: "100%" }}>
       <GlobeDisplay events={filteredEvents} />
-      {dataRangeLoaded && currentYearRange && ( // Only render slider if range is loaded
-        <TimelineSlider
-          minYear={minYear}
-          maxYear={maxYear}
-          valueStartYear={currentYearRange.start}
-          valueEndYear={currentYearRange.end}
+      {dataRangeLoaded &&
+        currentYearRange && ( // Only render slider if range is loaded
+          <TimelineSlider
+            minYear={minYear}
+            maxYear={maxYear}
+            valueStartYear={currentYearRange.start}
+            valueEndYear={currentYearRange.end}
           onYearRangeChange={handleYearRangeChange}
         />
       )}
-      {dataRangeLoaded && currentYearRange && ( // Render dashboard if range is loaded
-        <DashboardPanel 
-          totalFilteredEvents={filteredEvents.length}
-          currentYearRange={currentYearRange}
-          eventsData={filteredEvents}
-        />
-      )}
+      {/* Container for Dashboard Toggle Button and Dashboard Panel */}
+      <div className="absolute top-4 left-4 z-30 flex items-start space-x-2">
+        {/* Conditionally render DashboardPanel first if visible */}
+        {dataRangeLoaded &&
+          currentYearRange &&
+          isDashboardVisible && ( 
+            <DashboardPanel
+              totalFilteredEvents={filteredEvents.length}
+              currentYearRange={currentYearRange}
+              eventsData={filteredEvents}
+            />
+          )}
+        {/* Always render the button, icon changes based on visibility */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="bg-slate-800 hover:bg-slate-700 text-slate-100 shrink-0" 
+          onClick={() => setIsDashboardVisible(!isDashboardVisible)}
+          aria-label={isDashboardVisible ? "Hide Dashboard" : "Show Dashboard"}
+        >
+          {isDashboardVisible ? (
+            <PanelRightOpen className="h-5 w-5" /> // Panel is open, arrow suggests "push left to hide"
+          ) : (
+            <PanelLeftOpen className="h-5 w-5" /> // Panel is closed, arrow suggests "pull open from left to show on right" (of button)
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

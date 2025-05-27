@@ -53,23 +53,26 @@ const TimelineSlider: React.FC<TimelineSliderProps> = ({
   }
 
   return (
-    <div style={{ padding: '20px', backgroundColor: 'rgba(40,40,40,0.8)', color: 'white', position: 'absolute', bottom: '20px', left: '20px', right: '20px', zIndex: 10 }}>
-      <h4 style={{ marginTop: 0, marginBottom: '15px' }}>Filter Events by Year Range</h4>
-      <div style={{ display: 'flex', alignItems: 'center', padding: '0 10px' }}>
+    <div className="absolute bottom-4 left-4 right-4 z-10 bg-slate-900 text-slate-100 p-4 shadow-lg rounded-lg">
+      <h4 className="text-md font-semibold text-slate-100 mb-3 text-center">Filter Events by Year Range</h4>
+      <div className="flex items-center px-2"> {/* Adjusted padding */}
         {/* Display draftRange for live feedback */}
-        <span style={{ marginRight: '15px' }}>{draftRange[0]}</span> 
+        <span className="mr-3 text-sm tabular-nums">{draftRange[0]}</span> 
         <Range
           min={minYear}
           max={maxYear}
-          value={draftRange} // Slider is controlled by local draftRange during drag
+          value={draftRange} 
           onChange={handleSliderContinuousChange}
           onChangeComplete={handleSliderFinalChange}
           allowCross={false}
           count={1}
           range={true}
+          // Optional: Apply Tailwind-friendly styling to rc-slider tracks/handles if needed
+          // trackStyle={[{ backgroundColor: 'rgb(var(--color-primary))' }]} // Example using CSS var
+          // handleStyle={[{ borderColor: 'rgb(var(--color-primary))', backgroundColor: 'white' }]}
+          // railStyle={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
         />
-        {/* Display draftRange for live feedback */}
-        <span style={{ marginLeft: '15px' }}>{draftRange[1]}</span>
+        <span className="ml-3 text-sm tabular-nums">{draftRange[1]}</span>
       </div>
     </div>
   );

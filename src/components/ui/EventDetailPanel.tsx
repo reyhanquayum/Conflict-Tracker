@@ -12,13 +12,13 @@ const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClose }) =
   }
 
   return (
-    // Removed h-full, added h-auto, max-h-[90vh], m-4 for margin, rounded-lg for softer corners
-    <div className="absolute top-4 right-4 h-auto max-h-[calc(100vh-2rem)] w-1/3 max-w-md bg-slate-800 text-slate-100 p-6 shadow-lg overflow-y-auto transition-transform transform-gpu z-20 rounded-lg">
+    // Changed background to slate-900
+    <div className="absolute top-4 right-4 h-auto max-h-[calc(100vh-2rem)] w-1/3 max-w-md bg-slate-900 text-slate-100 p-6 shadow-lg overflow-y-auto transition-transform transform-gpu z-20 rounded-lg">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-slate-50">Event Details</h3>
+        <h3 className="text-xl font-semibold text-slate-100">Event Details</h3> {/* Title text to slate-100 */}
         <button 
           onClick={onClose} 
-          className="text-slate-400 hover:text-slate-200 transition-colors"
+          className="text-slate-400 hover:text-slate-100 transition-colors" /* Hover to lighter slate */
           aria-label="Close panel"
         >
           {/* Using a simple X for now, can be replaced with an icon */}
@@ -36,7 +36,7 @@ const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClose }) =
         {event.description && (
           <div>
             <strong className="font-medium text-slate-300">Description:</strong>
-            <p className="mt-1 text-slate-300 whitespace-pre-wrap break-words bg-slate-700 p-2 rounded">
+            <p className="mt-1 text-slate-300 whitespace-pre-wrap break-words bg-slate-800 p-2 rounded"> {/* Darker bg for description box */}
               {event.description}
             </p>
           </div>

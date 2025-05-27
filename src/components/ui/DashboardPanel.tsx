@@ -1,7 +1,7 @@
-import React from 'react';
-import BarChart from '@/components/charts/BarChart';
-import PieChart from '@/components/charts/PieChart'; // Import PieChart
-import type { EventData } from '@/components/visualization/GlobeDisplay';
+import React from "react";
+import BarChart from "@/components/charts/BarChart";
+import PieChart from "@/components/charts/PieChart"; // Import PieChart
+import type { EventData } from "@/components/visualization/GlobeDisplay";
 // We might use shadcn/ui Card component here later
 // import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 
@@ -11,26 +11,30 @@ interface DashboardPanelProps {
   eventsData: EventData[]; // Add eventsData prop
 }
 
-const DashboardPanel: React.FC<DashboardPanelProps> = ({ 
-  totalFilteredEvents, 
+const DashboardPanel: React.FC<DashboardPanelProps> = ({
+  totalFilteredEvents,
   currentYearRange,
-  eventsData 
+  eventsData,
 }) => {
   return (
-    // Increased width slightly to accommodate chart, adjust as needed e.g., max-w-sm or max-w-md
-    <div className="absolute top-4 left-4 w-auto max-w-md bg-slate-800 text-slate-100 p-4 shadow-lg rounded-lg z-20 overflow-y-auto max-h-[calc(100vh-2rem)]">
-      <h3 className="text-lg font-semibold text-slate-50 mb-3 border-b border-slate-700 pb-2">
+    // Changed background to slate-900 for a darker navy/charcoal feel.
+    <div className="w-auto max-w-md bg-slate-900 text-slate-100 p-4 shadow-lg rounded-lg overflow-y-auto max-h-[calc(100vh-2rem)]">
+      <h3 className="text-lg font-semibold text-slate-100 mb-3 border-b border-slate-700 pb-2"> {/* Title text to slate-100 for consistency */}
         Dashboard
       </h3>
-      <div className="space-y-4 text-sm"> {/* Increased space-y for chart */}
+      <div className="space-y-4 text-sm">
+        {" "}
+        {/* Increased space-y for chart */}
         {currentYearRange && (
           <p>
-            <strong className="text-slate-300">Selected Years:</strong> {currentYearRange.start} - {currentYearRange.end}
+            <strong className="text-slate-300">Selected Years:</strong>{" "}
+            {currentYearRange.start} - {currentYearRange.end}
           </p>
         )}
         {totalFilteredEvents !== undefined && (
           <p>
-            <strong className="text-slate-300">Displayed Events:</strong> {totalFilteredEvents}
+            <strong className="text-slate-300">Displayed Events:</strong>{" "}
+            {totalFilteredEvents}
           </p>
         )}
         {/* Placeholder for more stats */}
@@ -38,11 +42,11 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
           (More statistics will be shown here)
         </p> */}
         <div>
-          <BarChart data={eventsData} width={350} height={200} /> 
+          <BarChart data={eventsData} width={350} height={200} />
           {/* Adjust width/height as needed */}
         </div>
         <div>
-          <PieChart data={eventsData} width={350} height={250} /> 
+          <PieChart data={eventsData} width={350} height={250} />
           {/* Adjust width/height as needed, pie might need more height for labels */}
         </div>
       </div>
