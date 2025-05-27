@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import GlobeDisplay from './components/visualization/GlobeDisplay';
 import type { EventData } from './components/visualization/GlobeDisplay'; // Type-only import
 import TimelineSlider from './components/ui/TimelineSlider';
+import DashboardPanel from './components/ui/DashboardPanel'; // Added import
 
 const EVENTS_JSON_URL = '/data/events.json'; // Path to our events data
 
@@ -91,6 +92,12 @@ function App() {
           valueStartYear={currentYearRange.start}
           valueEndYear={currentYearRange.end}
           onYearRangeChange={handleYearRangeChange}
+        />
+      )}
+      {dataProcessed && ( // Render dashboard after data is processed
+        <DashboardPanel 
+          totalFilteredEvents={filteredEvents.length}
+          currentYearRange={currentYearRange}
         />
       )}
     </div>
