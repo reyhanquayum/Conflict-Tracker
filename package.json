@@ -11,14 +11,20 @@
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-popover": "^1.1.14",
     "@radix-ui/react-slot": "^1.2.3",
     "@react-three/drei": "^10.0.8",
     "@react-three/fiber": "^9.1.2",
     "@turf/centroid": "^7.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "cors": "^2.8.5",
     "d3": "^7.9.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "lucide-react": "^0.511.0",
+    "mongodb": "^6.16.0",
     "rc": "^1.2.8",
     "rc-slider": "^11.1.8",
     "react": "^19.1.0",
@@ -26,11 +32,7 @@
     "react-globe.gl": "^2.33.2",
     "tailwind-merge": "^3.3.0",
     "tailwindcss-animate": "^1.0.7",
-    "three": "^0.176.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "mongodb": "^6.16.0"
+    "three": "^0.176.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

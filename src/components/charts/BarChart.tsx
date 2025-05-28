@@ -162,4 +162,4 @@ const BarChart: React.FC<BarChartProps> = ({ data, width = 400, height = 300 }) 
   );
 };
 
-export default BarChart;
+export default React.memo(BarChart);

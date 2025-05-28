@@ -56,7 +56,14 @@ export interface GroupCount {
   count: number;
 }
 
+export interface EventTypeCount {
+  type: string; // Event type name
+  count: number;
+}
+
 export interface OverallSummaryData {
   byYear: YearlyCount[];
   byGroup: GroupCount[];
+  byEventTypeGlobal: EventTypeCount[];
+  eventTypeCountsForSelectedGroup?: EventTypeCount[]; // Optional, only if a group is filtered
 }

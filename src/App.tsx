@@ -71,7 +71,13 @@ function App() {
   const [showInfoModal, setShowInfoModal] = useState(true); // initial state
   const [webGLSupported, setWebGLSupported] = useState(true);
   const [dontShowAgain, setDontShowAgain] = useState(false);
-  const [isTimelineFocused, setIsTimelineFocused] = useState(false); //  timeline transparency
+  const [isTimelineFocused, setIsTimelineFocused] = useState(false); 
+
+  // State for new filters
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string | null>(null);
+  const [selectedEventTypeFilter, setSelectedEventTypeFilter] = useState<string | null>(null);
+  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
+  const [availableEventTypes, setAvailableEventTypes] = useState<string[]>([]);
 
   useEffect(() => {
     setWebGLSupported(isWebGLAvailable());
@@ -114,13 +120,20 @@ function App() {
       });
   }, []);
 
-  // get clusters when currentYearRange or mapView (for zoom/center) changes
+  // get clusters when currentYearRange, mapView, or filters change
   useEffect(() => {
     if (currentYearRange && dataRangeLoaded) {
       const { start, end } = currentYearRange;
       let apiUrl = `${API_BASE_URL}/api/events?startYear=${start}&endYear=${end}`;
 
-      let calculatedZoomLevel = 5; // Default for overview
+      if (selectedGroupFilter) {
+        apiUrl += `&groupFilter=${encodeURIComponent(selectedGroupFilter)}`;
+      }
+      if (selectedEventTypeFilter) {
+        apiUrl += `&eventTypeFilter=${encodeURIComponent(selectedEventTypeFilter)}`;
+      }
+
+      let calculatedZoomLevel = 5; 
       if (mapView) {
         // pass mapView details to get appropriate cluster granularity
         if (mapView.altitude < 0.5) calculatedZoomLevel = 15;
@@ -149,14 +162,21 @@ function App() {
           setClusterDisplayData([]);
         });
     }
-  }, [currentYearRange, dataRangeLoaded, mapView]);
+  }, [currentYearRange, dataRangeLoaded, mapView, selectedGroupFilter, selectedEventTypeFilter]); // Added filters to dependencies
 
-  // get overall summary data when currentYearRange changes
+  // get overall summary data when currentYearRange or filters change
   useEffect(() => {
     if (currentYearRange && dataRangeLoaded) {
       const { start, end } = currentYearRange;
-      const summaryApiUrl = `${API_BASE_URL}/api/events/summary?startYear=${start}&endYear=${end}`;
-      // console.log(`Fetching overall summary data from: ${summaryApiUrl}`); // A bit noisy
+      let summaryApiUrl = `${API_BASE_URL}/api/events/summary?startYear=${start}&endYear=${end}`;
+      
+      if (selectedGroupFilter) {
+        summaryApiUrl += `&groupFilter=${encodeURIComponent(selectedGroupFilter)}`;
+      }
+      if (selectedEventTypeFilter) {
+        summaryApiUrl += `&eventTypeFilter=${encodeURIComponent(selectedEventTypeFilter)}`;
+      }
+      
       fetch(summaryApiUrl)
         .then((res) => res.json())
         .then((data: OverallSummaryData) => {
@@ -167,17 +187,51 @@ function App() {
           setOverallSummaryData(null);
         });
     }
+  }, [currentYearRange, dataRangeLoaded, selectedGroupFilter, selectedEventTypeFilter]); // Added filters to dependencies
+
+  // Fetch filter options (groups, event types) when currentYearRange changes
+  useEffect(() => {
+    if (currentYearRange && dataRangeLoaded) {
+      const { start, end } = currentYearRange;
+      const filterOptionsUrl = `${API_BASE_URL}/api/filter_options?startYear=${start}&endYear=${end}`;
+      fetch(filterOptionsUrl)
+        .then(res => res.json())
+        .then(data => {
+          setAvailableGroups(data.groups || []);
+          setAvailableEventTypes(data.eventTypes || []);
+        })
+        .catch(err => {
+          console.error("Error loading filter options:", err);
+          setAvailableGroups([]);
+          setAvailableEventTypes([]);
+        });
+    }
   }, [currentYearRange, dataRangeLoaded]);
+
 
   const handleYearRangeChange = useCallback(
     (startYear: number, endYear: number) => {
       setCurrentYearRange({ start: startYear, end: endYear });
-      // year range changes, clear any selected cluster details
       setSelectedCluster(null);
       setDetailedEventsInCluster(null);
+      // Reset filters when year range changes? Or keep them? For now, let's keep them.
+      // setSelectedGroupFilter(null); 
+      // setSelectedEventTypeFilter(null);
     },
     []
   );
+
+  const handleGroupFilterChange = useCallback((group: string | null) => {
+    setSelectedGroupFilter(group);
+    setSelectedCluster(null); // Clear selected cluster when global filters change
+    setDetailedEventsInCluster(null);
+  }, []);
+
+  const handleEventTypeFilterChange = useCallback((eventType: string | null) => {
+    setSelectedEventTypeFilter(eventType);
+    setSelectedCluster(null); // Clear selected cluster
+    setDetailedEventsInCluster(null);
+  }, []);
 
   const handleViewChange = useCallback((newView: MapView) => {
     if (mapViewUpdateTimeoutRef.current) {
@@ -292,17 +346,23 @@ function App() {
           <DashboardPanel
             totalFilteredEvents={
               selectedCluster
-                ? detailedEventsInCluster
-                  ? detailedEventsInCluster.length
-                  : 0
-                : overallSummaryData
-                ? overallSummaryData.byYear.reduce((sum, y) => sum + y.count, 0)
-                : clusterDisplayData.reduce((sum, c) => sum + c.count, 0)
+                ? (detailedEventsInCluster ? detailedEventsInCluster.length : 0)
+                : (overallSummaryData && overallSummaryData.byYear && overallSummaryData.byYear.length > 0
+                    ? overallSummaryData.byYear.reduce((sum, y) => sum + y.count, 0)
+                    : (clusterDisplayData ? clusterDisplayData.reduce((sum, c) => sum + c.count, 0) : 0)
+                  )
             }
             currentYearRange={currentYearRange}
             detailedEventsData={detailedEventsInCluster}
             overallSummaryData={overallSummaryData} 
             isClusterSelected={!!selectedCluster}
+            // Filter props
+            availableGroups={availableGroups}
+            selectedGroup={selectedGroupFilter}
+            onGroupChange={handleGroupFilterChange}
+            availableEventTypes={availableEventTypes}
+            selectedEventType={selectedEventTypeFilter}
+            onEventTypeChange={handleEventTypeFilterChange}
           />
         )}
         <Button

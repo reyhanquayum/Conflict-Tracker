@@ -181,4 +181,4 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
   );
 };
 
-export default PieChart;
+export default React.memo(PieChart);

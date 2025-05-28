@@ -47,6 +47,49 @@ function getGridPrecision(zoomLevel) {
 
 // --- deefine API routes ---
 
+app.get('/api/filter_options', async (req, res) => {
+  try {
+    const currentDb = await getDb();
+    const { startYear, endYear } = req.query;
+    const sYear = parseInt(startYear, 10);
+    const eYear = parseInt(endYear, 10);
+
+    if (isNaN(sYear) || isNaN(eYear)) {
+      return res.status(400).json({ error: "Valid startYear and endYear are required." });
+    }
+
+    const eventsCollection = currentDb.collection('events');
+    const query = { year: { $gte: sYear, $lte: eYear } };
+
+    // Get unique group names
+    const groupsPipeline = [
+      { $match: query },
+      { $group: { _id: "$group" } },
+      { $sort: { _id: 1 } },
+      { $project: { _id: 0, groupName: "$_id" } }
+    ];
+    const uniqueGroups = await eventsCollection.aggregate(groupsPipeline).map(doc => doc.groupName).toArray();
+
+    // Get unique event types
+    const typesPipeline = [
+      { $match: query },
+      { $group: { _id: "$type" } }, // Assuming 'type' is the field for event type
+      { $sort: { _id: 1 } },
+      { $project: { _id: 0, eventType: "$_id" } }
+    ];
+    const uniqueTypes = await eventsCollection.aggregate(typesPipeline).map(doc => doc.eventType).toArray();
+
+    res.json({
+      groups: uniqueGroups.filter(g => g), // Filter out null/empty groups
+      eventTypes: uniqueTypes.filter(t => t) // Filter out null/empty types
+    });
+
+  } catch (error) {
+    console.error("Error fetching filter options:", error);
+    res.status(500).json({ error: "Failed to fetch filter options" });
+  }
+});
+
 app.get('/api/config/datarange', async (req, res) => {
   try {
     const currentDb = await getDb();
@@ -65,15 +108,26 @@ app.get('/api/config/datarange', async (req, res) => {
   }
 });
 
-app.get('/api/events', async (req, res) => {
+  app.get('/api/events', async (req, res) => {
   try {
     const currentDb = await getDb();
-    const { startYear, endYear, zoomLevel = '5', mapBounds, centerLat, centerLng } = req.query;
+    const { 
+      startYear, endYear, zoomLevel = '5', 
+      mapBounds, centerLat, centerLng,
+      groupFilter, eventTypeFilter // New filter parameters
+    } = req.query;
     const sYear = parseInt(startYear, 10);
     const eYear = parseInt(endYear, 10);
     const zoom = parseFloat(zoomLevel);
     const eventsCollection = currentDb.collection('events');
     let baseQuery = { year: { $gte: sYear, $lte: eYear } };
+
+    if (groupFilter) {
+      baseQuery.group = groupFilter; // Add group filter to query
+    }
+    if (eventTypeFilter) {
+      baseQuery.type = eventTypeFilter; // Add event type filter to query
+    }
   
     const precision = getGridPrecision(zoom);
     const factor = Math.pow(10, precision);
@@ -146,10 +200,13 @@ app.get('/api/events_in_cluster', async (req, res) => {
   }
 });
 
-app.get('/api/events/summary', async (req, res) => {
+  app.get('/api/events/summary', async (req, res) => {
   try {
     const currentDb = await getDb();
-    const { startYear, endYear } = req.query;
+    const { 
+      startYear, endYear, 
+      groupFilter, eventTypeFilter // New filter parameters
+    } = req.query;
     const sYear = parseInt(startYear, 10);
     const eYear = parseInt(endYear, 10);
 
@@ -157,7 +214,15 @@ app.get('/api/events/summary', async (req, res) => {
         return res.status(400).json({ error: "Valid startYear and endYear are required." });
     }
     const eventsCollection = currentDb.collection('events');
-    const baseQuery = { year: { $gte: sYear, $lte: eYear } };
+    let baseQuery = { year: { $gte: sYear, $lte: eYear } };
+
+    if (groupFilter) {
+      baseQuery.group = groupFilter;
+    }
+    if (eventTypeFilter) {
+      baseQuery.type = eventTypeFilter;
+    }
+
     const byYearPipeline = [
         { $match: baseQuery },
         { $group: { _id: "$year", count: { $sum: 1 } } },
@@ -165,6 +230,8 @@ app.get('/api/events/summary', async (req, res) => {
         { $sort: { year: 1 } }
     ];
     const summaryByYear = await eventsCollection.aggregate(byYearPipeline).toArray();
+    
+    // This byGroupPipeline is affected by all filters in baseQuery
     const byGroupPipeline = [
         { $match: baseQuery },
         { $group: { _id: "$group", count: { $sum: 1 } } },
@@ -172,7 +239,68 @@ app.get('/api/events/summary', async (req, res) => {
         { $sort: { count: -1 } }
     ];
     const summaryByGroup = await eventsCollection.aggregate(byGroupPipeline).toArray();
-    res.json({ byYear: summaryByYear, byGroup: summaryByGroup });
+
+    // Calculate global event type distribution (respects year range and global eventTypeFilter, but not groupFilter)
+    let globalEventTypeQuery = { year: { $gte: sYear, $lte: eYear } };
+    if (eventTypeFilter) { // If a global event type filter is set, apply it here too
+      globalEventTypeQuery.type = eventTypeFilter;
+    }
+    const byEventTypeGlobalPipeline = [
+        { $match: globalEventTypeQuery },
+        { $group: { _id: "$type", count: { $sum: 1 } } },
+        { $project: { _id: 0, type: "$_id", count: 1 } },
+        { $sort: { count: -1 } }
+    ];
+    const summaryByEventTypeGlobal = await eventsCollection.aggregate(byEventTypeGlobalPipeline).toArray();
+
+    let responseJson = {
+      byYear: summaryByYear,
+      byGroup: summaryByGroup,
+      byEventTypeGlobal: summaryByEventTypeGlobal
+    };
+
+    // If a specific group is filtered, also get event types for that group
+    if (groupFilter) {
+      const eventTypeForGroupQuery = { 
+        year: { $gte: sYear, $lte: eYear },
+        group: groupFilter 
+      };
+      if (eventTypeFilter) { // If there's also a global event type filter, apply it
+        eventTypeForGroupQuery.type = eventTypeFilter;
+      }
+      const eventTypeCountsForSelectedGroupPipeline = [
+        { $match: eventTypeForGroupQuery },
+        { $group: { _id: "$type", count: { $sum: 1 } } },
+        { $project: { _id: 0, type: "$_id", count: 1 } },
+        { $sort: { count: -1 } }
+      ];
+      const eventTypeCountsForSelectedGroup = await eventsCollection.aggregate(eventTypeCountsForSelectedGroupPipeline).toArray();
+      responseJson.eventTypeCountsForSelectedGroup = eventTypeCountsForSelectedGroup;
+    }
+
+    // --- Start Debug Logs ---
+    console.log("--- DEBUG: /api/events/summary ---");
+    console.log("Request Query:", JSON.stringify(req.query));
+    console.log("Base Query for byYear/byGroup:", JSON.stringify(baseQuery));
+    console.log("Global Event Type Query for byEventTypeGlobal:", JSON.stringify(globalEventTypeQuery));
+    console.log("Result summaryByEventTypeGlobal length:", summaryByEventTypeGlobal.length);
+    // console.log("Result summaryByEventTypeGlobal sample:", JSON.stringify(summaryByEventTypeGlobal.slice(0,2)));
+
+
+    if (groupFilter) {
+      // The variable eventTypeForGroupQuery is defined a few lines below,
+      // so we can't log it here. The query itself is constructed correctly.
+      if (responseJson.eventTypeCountsForSelectedGroup) {
+        console.log("Result eventTypeCountsForSelectedGroup length:", responseJson.eventTypeCountsForSelectedGroup.length);
+        // console.log("Result eventTypeCountsForSelectedGroup sample:", JSON.stringify(responseJson.eventTypeCountsForSelectedGroup.slice(0,2)));
+      } else {
+        console.log("eventTypeCountsForSelectedGroup is undefined in responseJson");
+      }
+    }
+    // console.log("Full responseJson being sent (first 1000 chars):", JSON.stringify(responseJson, null, 2).substring(0,1000));
+    // --- End Debug Logs ---
+
+    res.json(responseJson);
   } catch (error) {
     console.error("Error fetching event summary:", error);
     res.status(500).json({ error: "Failed to fetch event summary" });
