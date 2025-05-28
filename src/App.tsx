@@ -23,8 +23,8 @@ import type {
 
 let API_BASE_URL: string;
 // for prod
-if (process.env.NODE_ENV === 'production') {
-  API_BASE_URL = ""; 
+if (process.env.NODE_ENV === "production") {
+  API_BASE_URL = "";
 } else {
   // for local
   API_BASE_URL = "http://localhost:3001";
@@ -71,11 +71,15 @@ function App() {
   const [showInfoModal, setShowInfoModal] = useState(true); // initial state
   const [webGLSupported, setWebGLSupported] = useState(true);
   const [dontShowAgain, setDontShowAgain] = useState(false);
-  const [isTimelineFocused, setIsTimelineFocused] = useState(false); 
+  const [isTimelineFocused, setIsTimelineFocused] = useState(false);
 
   // State for new filters
-  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string | null>(null);
-  const [selectedEventTypeFilter, setSelectedEventTypeFilter] = useState<string | null>(null);
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string | null>(
+    null
+  );
+  const [selectedEventTypeFilter, setSelectedEventTypeFilter] = useState<
+    string | null
+  >(null);
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
   const [availableEventTypes, setAvailableEventTypes] = useState<string[]>([]);
 
@@ -128,10 +132,12 @@ function App() {
         apiUrl += `&groupFilter=${encodeURIComponent(selectedGroupFilter)}`;
       }
       if (selectedEventTypeFilter) {
-        apiUrl += `&eventTypeFilter=${encodeURIComponent(selectedEventTypeFilter)}`;
+        apiUrl += `&eventTypeFilter=${encodeURIComponent(
+          selectedEventTypeFilter
+        )}`;
       }
 
-      let calculatedZoomLevel = 5; 
+      let calculatedZoomLevel = 5;
       if (mapView) {
         // pass mapView details to get appropriate cluster granularity
         if (mapView.altitude < 0.5) calculatedZoomLevel = 15;
@@ -160,21 +166,31 @@ function App() {
           setClusterDisplayData([]);
         });
     }
-  }, [currentYearRange, dataRangeLoaded, mapView, selectedGroupFilter, selectedEventTypeFilter]); // Added filters to dependencies
+  }, [
+    currentYearRange,
+    dataRangeLoaded,
+    mapView,
+    selectedGroupFilter,
+    selectedEventTypeFilter,
+  ]); // Added filters to dependencies
 
   // get overall summary data when currentYearRange or filters change
   useEffect(() => {
     if (currentYearRange && dataRangeLoaded) {
       const { start, end } = currentYearRange;
       let summaryApiUrl = `${API_BASE_URL}/api/events/summary?startYear=${start}&endYear=${end}`;
-      
+
       if (selectedGroupFilter) {
-        summaryApiUrl += `&groupFilter=${encodeURIComponent(selectedGroupFilter)}`;
+        summaryApiUrl += `&groupFilter=${encodeURIComponent(
+          selectedGroupFilter
+        )}`;
       }
       if (selectedEventTypeFilter) {
-        summaryApiUrl += `&eventTypeFilter=${encodeURIComponent(selectedEventTypeFilter)}`;
+        summaryApiUrl += `&eventTypeFilter=${encodeURIComponent(
+          selectedEventTypeFilter
+        )}`;
       }
-      
+
       fetch(summaryApiUrl)
         .then((res) => res.json())
         .then((data: OverallSummaryData) => {
@@ -185,7 +201,12 @@ function App() {
           setOverallSummaryData(null);
         });
     }
-  }, [currentYearRange, dataRangeLoaded, selectedGroupFilter, selectedEventTypeFilter]); // Added filters to dependencies
+  }, [
+    currentYearRange,
+    dataRangeLoaded,
+    selectedGroupFilter,
+    selectedEventTypeFilter,
+  ]); // Added filters to dependencies
 
   // fetch filter options (groups, event types) when currentYearRange changes
   useEffect(() => {
@@ -193,12 +214,12 @@ function App() {
       const { start, end } = currentYearRange;
       const filterOptionsUrl = `${API_BASE_URL}/api/filter_options?startYear=${start}&endYear=${end}`;
       fetch(filterOptionsUrl)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           setAvailableGroups(data.groups || []);
           setAvailableEventTypes(data.eventTypes || []);
         })
-        .catch(err => {
+        .catch((err) => {
           console.error("Error loading filter options:", err);
           setAvailableGroups([]);
           setAvailableEventTypes([]);
@@ -206,13 +227,11 @@ function App() {
     }
   }, [currentYearRange, dataRangeLoaded]);
 
-
   const handleYearRangeChange = useCallback(
     (startYear: number, endYear: number) => {
       setCurrentYearRange({ start: startYear, end: endYear });
       setSelectedCluster(null);
       setDetailedEventsInCluster(null);
-
     },
     []
   );
@@ -223,11 +242,14 @@ function App() {
     setDetailedEventsInCluster(null);
   }, []);
 
-  const handleEventTypeFilterChange = useCallback((eventType: string | null) => {
-    setSelectedEventTypeFilter(eventType);
-    setSelectedCluster(null);
-    setDetailedEventsInCluster(null);
-  }, []);
+  const handleEventTypeFilterChange = useCallback(
+    (eventType: string | null) => {
+      setSelectedEventTypeFilter(eventType);
+      setSelectedCluster(null);
+      setDetailedEventsInCluster(null);
+    },
+    []
+  );
 
   const handleViewChange = useCallback((newView: MapView) => {
     if (mapViewUpdateTimeoutRef.current) {
@@ -239,7 +261,7 @@ function App() {
       //   newView
       // );
       setMapView(newView);
-    }, 500); 
+    }, 500);
   }, []);
 
   // cleanup timeout on component unmount
@@ -266,10 +288,14 @@ function App() {
       let detailApiUrl = `${API_BASE_URL}/api/events_in_cluster?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&startYear=${start}&endYear=${end}&limit=100`;
 
       if (selectedGroupFilter) {
-        detailApiUrl += `&groupFilter=${encodeURIComponent(selectedGroupFilter)}`;
+        detailApiUrl += `&groupFilter=${encodeURIComponent(
+          selectedGroupFilter
+        )}`;
       }
       if (selectedEventTypeFilter) {
-        detailApiUrl += `&eventTypeFilter=${encodeURIComponent(selectedEventTypeFilter)}`;
+        detailApiUrl += `&eventTypeFilter=${encodeURIComponent(
+          selectedEventTypeFilter
+        )}`;
       }
 
       // console.log("Fetching detailed events for cluster:", detailApiUrl);
@@ -307,7 +333,6 @@ function App() {
 
   const handleShowHelpModal = () => {
     setShowInfoModal(true);
-
   };
 
   if (!webGLSupported) {
@@ -335,14 +360,15 @@ function App() {
       {dataRangeLoaded && currentYearRange && (
         <div
           style={{
-            position: 'absolute',
-            bottom: '0px',
-            left: isDashboardVisible ? `calc(384px + 1rem)` : '1rem',
-            right: selectedCluster ? `calc(384px + 1rem)` : '1rem',
+            position: "absolute",
+            bottom: "0px",
+            left: isDashboardVisible ? `calc(384px + 1rem)` : "1rem",
+            right: selectedCluster ? `calc(384px + 1rem)` : "1rem",
             zIndex: 20,
-            transition: 'left 0.3s ease-in-out, right 0.3s ease-in-out, opacity 0.3s ease-in-out',
+            transition:
+              "left 0.3s ease-in-out, right 0.3s ease-in-out, opacity 0.3s ease-in-out",
           }}
-          className={`timeline-container p-4 ${ 
+          className={`timeline-container p-4 ${
             isTimelineFocused ? "opacity-100" : "opacity-60 hover:opacity-90"
           }`}
         >
@@ -362,15 +388,20 @@ function App() {
           <DashboardPanel
             totalFilteredEvents={
               selectedCluster
-                ? (detailedEventsInCluster ? detailedEventsInCluster.length : 0)
-                : (overallSummaryData && overallSummaryData.byYear && overallSummaryData.byYear.length > 0
-                    ? overallSummaryData.byYear.reduce((sum, y) => sum + y.count, 0)
-                    : (clusterDisplayData ? clusterDisplayData.reduce((sum, c) => sum + c.count, 0) : 0)
-                  )
+                ? detailedEventsInCluster
+                  ? detailedEventsInCluster.length
+                  : 0
+                : overallSummaryData &&
+                  overallSummaryData.byYear &&
+                  overallSummaryData.byYear.length > 0
+                ? overallSummaryData.byYear.reduce((sum, y) => sum + y.count, 0)
+                : clusterDisplayData
+                ? clusterDisplayData.reduce((sum, c) => sum + c.count, 0)
+                : 0
             }
             currentYearRange={currentYearRange}
             detailedEventsData={detailedEventsInCluster}
-            overallSummaryData={overallSummaryData} 
+            overallSummaryData={overallSummaryData}
             isClusterSelected={!!selectedCluster}
             // filtering props
             availableGroups={availableGroups}
@@ -441,12 +472,20 @@ function App() {
             Project), covering events from 1999 to May 2, 2025, for the Middle
             East and North Africa region.
           </p>
+          <a
+            href="https://github.com/reyhanquayum/Conflict-Tracker"
+            className="text-xs text-blue-600 dark:text-blue-500 hover:underline pt-3"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            https://github.com/reyhanquayum/Conflict-Tracker
+          </a>
           <DialogFooter className="sm:justify-between pt-4">
             {" "}
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                id="dontShowAgainInfoModal" 
+                id="dontShowAgainInfoModal"
                 checked={dontShowAgain}
                 onChange={(e) => setDontShowAgain(e.target.checked)}
                 className="h-4 w-4 text-sky-500 border-slate-600 rounded focus:ring-sky-400 bg-slate-700"
