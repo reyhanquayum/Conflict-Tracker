@@ -38,10 +38,11 @@ We extend our gratitude to ACLED for making their valuable data publicly availab
     *   Python (script: `scripts/process_data.py`)
 
 ## Gallery
+
 <img src="img/img1.png" alt="View of timeline, Dashboard and Event Panel" width="300">
-<img src="img/img2.png" alt="Zoomed view of Event Details Panel" width="300">
-<img src="img/img3.png" alt="Groups available from dataset" width="300">
-<img src="img/img4.png" alt="Pie chart display" width="300">
+<img src="img/img2.png" alt="Selected view of Event Cluster" width="300">
+<img src="img/img3.png" alt="More Pie charts from Dashboard" width="300">
+<img src="img/img4.png" alt="Groups available from dataset" width="300">
 
 ## Setup and Running
 
