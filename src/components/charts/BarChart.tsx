@@ -30,9 +30,9 @@ const BarChart: React.FC<BarChartProps> = ({ data, width = 400, height = 300 }) 
 
     if (isEventDataArray(data)) {
       const countsByYear = d3.rollup(
-        data, // data is EventData[] here
+        data, 
         v => v.length, 
-        d => { // d is EventData
+        d => {
           const parts = d.date.split(' ');
           return parts.length > 2 ? parts[parts.length - 1] : "Unknown"; 
         }
@@ -147,7 +147,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, width = 400, height = 300 }) 
         .attr("text-anchor", "middle")
         .attr("transform", "rotate(-90)")
         .attr("x", -(margin.top + innerHeight / 2))
-        .attr("y", margin.left / 2 - 10) // Position left of y-axis
+        .attr("y", margin.left / 2 - 10)
         .style("fill", "white")
         .style("font-size", "10px")
         .text("Number of Events");

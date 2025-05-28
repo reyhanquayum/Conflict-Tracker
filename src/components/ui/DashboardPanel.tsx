@@ -41,7 +41,6 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
   selectedEventType,
   onEventTypeChange,
 }) => {
-  // State for Group Combobox
   const [groupSearchInput, setGroupSearchInput] = useState(""); 
   const [comboboxGroupOptions, setComboboxGroupOptions] = useState<{ value: string; label: string; }[]>([]);
   const [isSearchingGroups, setIsSearchingGroups] = useState(false);
@@ -49,7 +48,6 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
 
   const [isBrowseGroupsModalOpen, setIsBrowseGroupsModalOpen] = useState(false); // State for new modal
 
-  // State for Event Type Combobox (client-side search)
   const [eventTypeSearchTerm, setEventTypeSearchTerm] = useState(""); 
   const eventTypeOptionsForCombobox = useMemo(() => ([
     { value: "__ALL_EVENT_TYPES__", label: "All Event Types" },
@@ -57,7 +55,6 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
   ]), [availableEventTypes]);
 
 
-  // Debounced function to fetch groups from API
   const fetchSearchedGroups = useCallback((searchTerm: string) => {
     if (!currentYearRange) return; 
 
@@ -76,8 +73,6 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
       })
       .then((data: string[]) => {
         const newOptions = data.map(group => ({ value: group, label: group }));
-        // Always ensure "All Groups" is an option if results are shown,
-        // or if a specific group is being shown (e.g. after selection and search clear)
         if (newOptions.length > 0 || selectedGroup) {
           setComboboxGroupOptions([{ value: "__ALL_GROUPS__", label: "All Groups" }, ...newOptions]);
         } else {
@@ -89,15 +84,14 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
         setComboboxGroupOptions([]); 
       })
       .finally(() => setIsSearchingGroups(false));
-  }, [currentYearRange, selectedGroup]); // Added selectedGroup
+  }, [currentYearRange, selectedGroup]);
 
-  // Effect for group search input
   useEffect(() => {
     if (groupSearchDebounceRef.current) clearTimeout(groupSearchDebounceRef.current);
     const trimmedSearch = groupSearchInput.trim();
 
     if (trimmedSearch === "" && !selectedGroup) {
-      setComboboxGroupOptions([{ value: "__ALL_GROUPS__", label: "All Groups" }]); // Show "All Groups" if search empty & no selection
+      setComboboxGroupOptions([{ value: "__ALL_GROUPS__", label: "All Groups" }]);
       setIsSearchingGroups(false);
       return;
     }
@@ -106,31 +100,26 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
     } else if (trimmedSearch.length > 0 && trimmedSearch.length < 2) {
       setComboboxGroupOptions([{ value: "__ALL_GROUPS__", label: "All Groups" }]);
       setIsSearchingGroups(false);
-    } else if (trimmedSearch === "" && selectedGroup) { // Search cleared but a group is selected
-        fetchSearchedGroups(selectedGroup); // Re-fetch to show selected group + "All Groups"
+    } else if (trimmedSearch === "" && selectedGroup) { 
+        fetchSearchedGroups(selectedGroup);
     }
     return () => { if (groupSearchDebounceRef.current) clearTimeout(groupSearchDebounceRef.current); };
   }, [groupSearchInput, fetchSearchedGroups, selectedGroup]);
 
-  // Effect for selected group (external changes)
   useEffect(() => {
     if (selectedGroup && groupSearchInput.trim() === "") {
-      // If a group is selected and search is empty, ensure options list includes it and "All Groups"
-      // fetchSearchedGroups will handle adding "All Groups" and the selected group if found
       const isSelectedInOptions = comboboxGroupOptions.some(opt => opt.value === selectedGroup);
       if (!isSelectedInOptions) fetchSearchedGroups(selectedGroup);
     } else if (!selectedGroup && groupSearchInput.trim() === "") {
-      // If no group selected and search is empty, show "All Groups"
       setComboboxGroupOptions([{ value: "__ALL_GROUPS__", label: "All Groups" }]);
     }
-  }, [selectedGroup, groupSearchInput, fetchSearchedGroups]); // REMOVED comboboxGroupOptions from dependency array
+  }, [selectedGroup, groupSearchInput, fetchSearchedGroups]); 
 
-  // No special effects needed for event type combobox options if it's always populated by availableEventTypes
-  // and uses client-side search.
+
 
   const barChartData = useMemo(() => {
     return isClusterSelected
-      ? detailedEventsData || [] // Corrected: use prop detailedEventsData
+      ? detailedEventsData || [] 
       : overallSummaryData
       ? overallSummaryData.byYear
       : [];
@@ -138,7 +127,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
 
   const pieChartData = useMemo(() => {
     return isClusterSelected
-      ? detailedEventsData || [] // Corrected: use prop detailedEventsData
+      ? detailedEventsData || []
       : overallSummaryData
       ? overallSummaryData.byGroup
       : [];
@@ -161,14 +150,8 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
       return { data, title };
     }, [selectedGroup, overallSummaryData]);
 
-  // If detailedEventsData is available (cluster selected) and no global group filter,
-  // we could potentially derive event types from detailedEventsData for the new pie chart.
-  // However, the current logic prioritizes overallSummaryData for this new chart.
-  // If a cluster is selected, this new pie chart will show global types or types for a globally selected group.
-  // This might be an area for future refinement if cluster-specific event type breakdown is needed here.
-
   return (
-    <> {/* Fragment to hold main panel and modal */}
+    <>
     <div className="w-auto max-w-sm bg-slate-900 text-slate-100 p-4 shadow-lg rounded-lg overflow-y-auto max-h-[calc(100vh-2rem)]">
       <h3 className="text-lg font-semibold text-slate-100 mb-3 border-b border-slate-700 pb-2">
         Dashboard
@@ -187,11 +170,10 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
           </p>
         )}
 
-        {/* Filter Dropdowns */}
         <div className="space-y-3 pt-2">
           <div>
             <label
-              htmlFor="group-combobox" // ID of the trigger button for the Combobox
+              htmlFor="group-combobox"
               className="block text-xs font-medium text-slate-300 mb-1"
             >
               Filter by Group:
@@ -239,7 +221,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
               Filter by Event Type:
             </label>
             <Combobox
-              options={eventTypeOptionsForCombobox} // Already includes "All Event Types"
+              options={eventTypeOptionsForCombobox}
               value={selectedEventType || undefined}
               onChange={(value) => {
                 if (value === "__ALL_EVENT_TYPES__") {
@@ -257,7 +239,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
               contentClassName="bg-slate-800 border-slate-700 text-slate-100"
               inputValue={eventTypeSearchTerm}
               onInputChange={setEventTypeSearchTerm}
-              displayValueLabel={selectedEventType || undefined} // Use selectedEventType directly as its own label
+              displayValueLabel={selectedEventType || undefined}
               // isLoading is not needed for client-side search
             />
           </div>
@@ -266,9 +248,11 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
         <div>
           <BarChart data={barChartData} width={320} height={200} />
         </div>
-        <div>
-          <PieChart data={pieChartData} width={320} height={250} />
-        </div>
+        {!selectedGroup && (
+          <div>
+            <PieChart data={pieChartData} width={320} height={250} />
+          </div>
+        )}
         <div>
           <EventTypesPieChart
             data={eventTypesPieChartData}
@@ -283,11 +267,11 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
       isOpen={isBrowseGroupsModalOpen}
       onClose={() => setIsBrowseGroupsModalOpen(false)}
       onGroupSelect={(groupName) => {
-        onGroupChange(groupName); // Update App state
-        setGroupSearchInput(groupName); // Update local search input to reflect selection
-        setIsBrowseGroupsModalOpen(false); // Close modal
+        onGroupChange(groupName);
+        setGroupSearchInput(groupName);
+        setIsBrowseGroupsModalOpen(false);
       }}
-      allGroups={availableGroups} // Pass all available groups for the current year range
+      allGroups={availableGroups}
       currentYearRange={currentYearRange}
     />
     </>

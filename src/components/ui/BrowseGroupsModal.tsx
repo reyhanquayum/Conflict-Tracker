@@ -7,14 +7,14 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-} from "@/components/ui/dialog"; // Assuming Dialog is already added via shadcn/ui
-import { Button } from "@/components/ui/button"; // Assuming Button is already added
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface BrowseGroupsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGroupSelect: (groupName: string) => void;
-  allGroups: string[]; // This will be `availableGroups` from App.tsx
+  allGroups: string[];
   currentYearRange?: { start: number; end: number };
 }
 
@@ -64,7 +64,7 @@ const BrowseGroupsModal: React.FC<BrowseGroupsModalProps> = ({
           />
         </div>
 
-        <div className="flex-grow overflow-y-auto pr-2 space-y-1"> {/* Scrollable list area */}
+        <div className="flex-grow overflow-y-auto pr-2 space-y-1">
           {filteredGroups.length > 0 ? (
             filteredGroups.map(group => (
               <Button

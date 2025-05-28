@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from "react-globe.gl";
-import { Color, CylinderGeometry, MeshBasicMaterial, Mesh } from "three"; // Removed SphereGeometry
+import { Color, CylinderGeometry, MeshBasicMaterial, Mesh } from "three";
 import type { ClusterData, MapView } from "@/types"; 
 
 const GEOJSON_FILE_URL = "/data/geodata/countries.geojson";
@@ -38,7 +38,6 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     };
   }, []);
 
-  // Renamed handlePointClick to handleObjectClick for clarity with objectsData
   const handleObjectClick = useCallback((obj: object) => {
     const cluster = obj as ClusterData; 
     if (onClusterClick && cluster.isCluster) { 
@@ -95,25 +94,22 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     }
   }, [onViewChange, userInteracted]); 
 
-  // Effect to set initial camera position
+  // effect to set initial camera position
   useEffect(() => {
     const globe = globeEl.current;
-    if (globe && !userInteracted) { // Only set initial view if user hasn't interacted
-      // Coordinates for Indian subcontinent / east of Middle East
-      const initialLat = 25; // e.g., Northern India / Pakistan
-      const initialLng = 75; // e.g., Central India
-      const initialAltitude = 2.0; // Adjust for desired zoom level
-      const transitionDurationMs = 1500; // Smooth transition
+    if (globe && !userInteracted) { // only set initial view if user hasnt interacted
+      const initialLat = 25;
+      const initialLng = 75;
+      const initialAltitude = 2.0; 
+      const transitionDurationMs = 1500;
 
-      // Check if pointOfView method exists
       if (typeof globe.pointOfView === 'function') {
         globe.pointOfView({ lat: initialLat, lng: initialLng, altitude: initialAltitude }, transitionDurationMs);
       } else {
         console.warn("globe.pointOfView method not available. Cannot set initial camera position.");
       }
     }
-    // This effect should run once on mount to set the initial camera.
-    // Not including userInteracted in deps, otherwise it might re-center unexpectedly.
+
   }, [globeEl]); 
 
   // creates the 3D cone object for each cluster
@@ -137,8 +133,8 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     let materialOpacity = 0.75;
 
     if (hoveredCluster) {
-      // using lat/lon/count for hover comparison, not ideal but works for now.
-      // a unique cluster ID from backend would be more robust.
+      // using lat/lon/count for hover comparison, not ideal but works for now
+      // a unique cluster ID from backend would be more robust
       if (cluster.lat === hoveredCluster.lat && cluster.lon === hoveredCluster.lon && cluster.count === hoveredCluster.count) {
         materialColor = 'orangered'; // highlight the one we're hovering
         materialOpacity = 0.9;
@@ -152,10 +148,7 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     
     const mesh = new Mesh(geometry, material);
     
-    // this rotation makes the cone "stand up" correctly
-    // because react-globe.gl orients the object's local Z-axis outwards.
     mesh.rotation.x = Math.PI / 2; 
-    // The cone's geometric center will be at objectAltitude due to no local translation.
 
     return mesh; 
 

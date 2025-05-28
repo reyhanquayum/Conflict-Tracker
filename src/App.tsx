@@ -267,7 +267,14 @@ function App() {
       const { minLat, maxLat, minLng, maxLng } = cluster.bounds;
       const { start, end } = currentYearRange;
 
-      const detailApiUrl = `${API_BASE_URL}/api/events_in_cluster?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&startYear=${start}&endYear=${end}&limit=100`;
+      let detailApiUrl = `${API_BASE_URL}/api/events_in_cluster?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&startYear=${start}&endYear=${end}&limit=100`;
+
+      if (selectedGroupFilter) {
+        detailApiUrl += `&groupFilter=${encodeURIComponent(selectedGroupFilter)}`;
+      }
+      if (selectedEventTypeFilter) {
+        detailApiUrl += `&eventTypeFilter=${encodeURIComponent(selectedEventTypeFilter)}`;
+      }
 
       // console.log("Fetching detailed events for cluster:", detailApiUrl);
       fetch(detailApiUrl)
@@ -284,7 +291,7 @@ function App() {
           setIsLoadingClusterDetails(false);
         });
     },
-    [currentYearRange]
+    [currentYearRange, selectedGroupFilter, selectedEventTypeFilter]
   );
 
   const handleCloseDetailPanel = () => {
@@ -356,7 +363,7 @@ function App() {
             detailedEventsData={detailedEventsInCluster}
             overallSummaryData={overallSummaryData} 
             isClusterSelected={!!selectedCluster}
-            // Filter props
+            // filtering props
             availableGroups={availableGroups}
             selectedGroup={selectedGroupFilter}
             onGroupChange={handleGroupFilterChange}

@@ -14,8 +14,7 @@ interface PieChartProps {
 
 const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  // note: the tooltip div is managed by D3 and appended to the body,
-  // so we don't need a React ref for it here.
+
 
   useEffect(() => {
     if (!svgRef.current) { // gotta have the svg element to draw on
@@ -24,8 +23,8 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
 
     // manage the tooltip div that's appended to the body
     // try to reuse it if one already exists from another chart instance, maybe?
-    // this could be a bit tricky if multiple pie charts are on the page,
-    // but for now, one global '.chart-tooltip' should be okay.
+    // this could be a bit tricky if multiple pie charts are on the page
+    // but for now, one global '.chart-tooltip' should be okay maybe idk bruh
     let tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>; 
     
     const existingTooltip = d3.select("body").select<HTMLDivElement>(".chart-tooltip"); 
@@ -68,7 +67,6 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
       aggregatedData = [...data]; 
     }
 
-    // now, let's sort and take top N groups, bunching the rest into "Other"
     const sortedGroups = [...aggregatedData].sort((a, b) => b.count - a.count);
 
     const TOP_N_GROUPS = 7; // how many slices before we group into "Other"
@@ -98,34 +96,33 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
     const svg = d3.select(svgRef.current)
       .attr('width', width)
       .attr('height', height)
-      .style('background-color', '#2d3748') // Match BarChart background
+      .style('background-color', '#2d3748')
       .style('color', 'white');
 
-    svg.selectAll("*").remove(); // Clear previous chart
+    svg.selectAll("*").remove();
 
-    const radius = Math.min(width, height) / 2 - 10; // Margin of 10
+    const radius = Math.min(width, height) / 2 - 10;
     const g = svg.append('g')
       .attr('transform', `translate(${width / 2},${height / 2})`);
 
-    const color = d3.scaleOrdinal(d3.schemeCategory10); // d3's a classic color scheme
+    const color = d3.scaleOrdinal(d3.schemeCategory10); 
 
-    const pie = d3.pie<any>().value(d => d.count).sort(null); // sort(null) to keep original order (or sorted order)
-    const arcGenerator = d3.arc<any>().innerRadius(radius * 0.5).outerRadius(radius); // for the donut slices
-    const labelArcGenerator = d3.arc<any>().innerRadius(radius * 0.8).outerRadius(radius * 0.8); // for positioning labels
+    const pie = d3.pie<any>().value(d => d.count).sort(null); 
+    const arcGenerator = d3.arc<any>().innerRadius(radius * 0.5).outerRadius(radius); // for donut slices
+    const labelArcGenerator = d3.arc<any>().innerRadius(radius * 0.8).outerRadius(radius * 0.8); 
 
-    // tooltip should be ready from above
 
     const arcs = g.selectAll('.arc')
-      .data(pie(chartData)) // pie(chartData) creates the necessary startAngle, endAngle etc.
+      .data(pie(chartData)) 
       .enter().append('g')
         .attr('class', 'arc');
 
     arcs.append('path')
-      .attr('d', arcGenerator) // use the arc generator
+      .attr('d', arcGenerator) 
       .attr('fill', (d: any) => color(d.data.group))
-      .on('mouseover', function (event, d: any) { // 'this' context is the path element here
+      .on('mouseover', function (event, d: any) {
         tooltip.transition().duration(200).style('opacity', 0.9);
-        const total = d3.sum(chartData, cd => cd.count); // sum for percentage
+        const total = d3.sum(chartData, cd => cd.count);
         const percentage = (d.data.count / total * 100).toFixed(1);
         tooltip.html(`<strong>${d.data.group}</strong><br/>Count: ${d.data.count}<br/>Percentage: ${percentage}%`)
           .style('left', (event.pageX + 15) + 'px') 
@@ -141,7 +138,7 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
 
     // add labels to the pie slices
     arcs.append('text')
-      .attr('transform', (d: any) => `translate(${labelArcGenerator.centroid(d)})`) // position with label arc
+      .attr('transform', (d: any) => `translate(${labelArcGenerator.centroid(d)})`)
       .attr('dy', '0.35em')
       .attr('text-anchor', 'middle')
       .style('font-size', '9px') 
@@ -150,10 +147,10 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
       .text((d: any) => {
         const total = d3.sum(chartData, cd => cd.count);
         const percentage = (d.data.count / total * 100);
-        if (percentage < 5) return ""; // hide labels for tiny slices, tooltip will do the job
+        if (percentage < 5) return ""; 
         
         let groupName = d.data.group;
-        // a bit of logic to truncate long names if there are many slices, to prevent clutter
+        // a bit of logic to truncate long names if there are many slices to prevent clutter
         if (groupName.length > 10 && chartData.length > 5) { 
             groupName = groupName.substring(0, 8) + "...";
         }
@@ -162,9 +159,7 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
     
     // cleanup when the component unmounts or data changes
     return () => {
-      // just hiding the tooltip is probably safest. if multiple charts use the same
-      // '.chart-tooltip' class, removing it might break others.
-      // a more complex app might need a dedicated tooltip manager.
+
       if (tooltip && tooltip.classed("chart-tooltip")) { 
           tooltip.style('opacity', 0);
       }
@@ -176,7 +171,6 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
     <div className="bg-slate-700 p-4 rounded-md shadow-lg mt-4"> 
       <h4 className="text-md font-semibold text-slate-100 mb-2">Event Proportion by Group</h4>
       <svg ref={svgRef}></svg>
-      {/* The tooltip div is managed by D3 and appended to document.body */}
     </div>
   );
 };

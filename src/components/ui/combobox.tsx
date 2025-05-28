@@ -37,7 +37,7 @@ interface ComboboxProps {
   inputValue: string; 
   onInputChange: (inputValue: string) => void; 
   displayValueLabel?: string; 
-  onOpen?: () => void; // Callback when popover opens
+  onOpen?: () => void;
 }
 
 const Combobox = React.forwardRef<
@@ -60,18 +60,15 @@ const Combobox = React.forwardRef<
 }, ref) => {
   const [open, setOpen] = React.useState(false);
 
-  // Determine text for the trigger button
   let triggerText = placeholder;
-  if (value && displayValueLabel) { // If a value is selected and a specific label for it is provided
+  if (value && displayValueLabel) {
     triggerText = displayValueLabel;
-  } else if (value) { // Fallback if displayValueLabel not provided, try to find in current options
+  } else if (value) {
     const selectedOptFromCurrentOptions = options.find((option) => option.value.toLowerCase() === value.toLowerCase());
     if (selectedOptFromCurrentOptions) {
       triggerText = selectedOptFromCurrentOptions.label;
     } else {
-      // If value is set but not in current options and no displayValueLabel,
-      // it might show the raw value or placeholder. This case should ideally be handled by parent providing displayValueLabel.
-      triggerText = value; // Or fallback to placeholder if value itself isn't display-friendly
+      triggerText = value; 
     }
   }
 
@@ -114,14 +111,14 @@ const Combobox = React.forwardRef<
             ) : (
               <>
                 <CommandEmpty className="py-4 text-center text-xs">{emptyText}</CommandEmpty>
-                {open && ( // Still useful to defer rendering if options list can be large initially
+                {open && (
                   <CommandGroup>
                     {options.map((option) => (
                       <CommandItem
                         key={option.value}
-                        value={option.value} // This value is used by Command for its internal state/filtering if not overridden
-                        onSelect={(currentValue) => { // currentValue is option.value
-                          // onChange expects the original cased value, or null
+                        value={option.value}
+                        onSelect={(currentValue) => {
+
                           onChange(currentValue === value ? null : currentValue);
                           setOpen(false);
                         }}

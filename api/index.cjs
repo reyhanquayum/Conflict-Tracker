@@ -23,7 +23,6 @@ async function getDb() {
   }
   try {
     if (!client) { 
-        // Removed serverApi options to allow use of 'distinct' command
         client = new MongoClient(mongoUri); 
     }
     await client.connect();
@@ -66,26 +65,23 @@ app.get('/api/search_groups', async (req, res) => {
     let query;
 
     if (term.trim() === "") {
-      // If term is empty, fetch a default list of groups (e.g., first N alphabetically)
-      // within the year range.
+      // if term is empty, fetch a default list of groups (e.g., first N alphabetically)
+      // within the year range
       query = { year: { $gte: sYear, $lte: eYear } };
-      // We use distinct to get unique group names, then sort and limit in JS.
-      // This is because distinct itself doesn't directly support limit in the same way as find().
+      // use distinct  here to get unique group names, then sort and limit
     } else {
-      // If term is not empty, search by term
       query = {
         year: { $gte: sYear, $lte: eYear },
-        group: new RegExp(term, 'i') // Case-insensitive regex search
+        group: new RegExp(term, 'i') // case-insensitive regex 
       };
     }
     
     const matchingGroups = await eventsCollection.distinct("group", query);
     
-    // Sort and limit results (distinct doesn't have a built-in limit for this use case)
     const sortedAndLimitedGroups = matchingGroups
-      .filter(g => g) // Filter out null/empty groups that might exist
-      .sort() // Alphabetical sort
-      .slice(0, searchLimit); // Apply limit
+      .filter(g => g)
+      .sort()
+      .slice(0, searchLimit);
 
     res.json(sortedAndLimitedGroups);
 
@@ -109,7 +105,7 @@ app.get('/api/filter_options', async (req, res) => {
     const eventsCollection = currentDb.collection('events');
     const query = { year: { $gte: sYear, $lte: eYear } };
 
-    // Get unique group names
+    // get unique group names
     const groupsPipeline = [
       { $match: query },
       { $group: { _id: "$group" } },
@@ -118,18 +114,18 @@ app.get('/api/filter_options', async (req, res) => {
     ];
     const uniqueGroups = await eventsCollection.aggregate(groupsPipeline).map(doc => doc.groupName).toArray();
 
-    // Get unique event types
+    // get unique event types
     const typesPipeline = [
       { $match: query },
-      { $group: { _id: "$type" } }, // Assuming 'type' is the field for event type
+      { $group: { _id: "$type" } },
       { $sort: { _id: 1 } },
       { $project: { _id: 0, eventType: "$_id" } }
     ];
     const uniqueTypes = await eventsCollection.aggregate(typesPipeline).map(doc => doc.eventType).toArray();
 
     res.json({
-      groups: uniqueGroups.filter(g => g), // Filter out null/empty groups
-      eventTypes: uniqueTypes.filter(t => t) // Filter out null/empty types
+      groups: uniqueGroups.filter(g => g),
+      eventTypes: uniqueTypes.filter(t => t)
     });
 
   } catch (error) {
@@ -162,7 +158,7 @@ app.get('/api/config/datarange', async (req, res) => {
     const { 
       startYear, endYear, zoomLevel = '5', 
       mapBounds, centerLat, centerLng,
-      groupFilter, eventTypeFilter // New filter parameters
+      groupFilter, eventTypeFilter
     } = req.query;
     const sYear = parseInt(startYear, 10);
     const eYear = parseInt(endYear, 10);
@@ -171,10 +167,10 @@ app.get('/api/config/datarange', async (req, res) => {
     let baseQuery = { year: { $gte: sYear, $lte: eYear } };
 
     if (groupFilter) {
-      baseQuery.group = groupFilter; // Add group filter to query
+      baseQuery.group = groupFilter;
     }
     if (eventTypeFilter) {
-      baseQuery.type = eventTypeFilter; // Add event type filter to query
+      baseQuery.type = eventTypeFilter;
     }
   
     const precision = getGridPrecision(zoom);
@@ -218,7 +214,11 @@ app.get('/api/config/datarange', async (req, res) => {
 app.get('/api/events_in_cluster', async (req, res) => {
   try {
     const currentDb = await getDb();
-    const { minLat, maxLat, minLng, maxLng, startYear, endYear, limit = '100' } = req.query;
+    const { 
+      minLat, maxLat, minLng, maxLng, 
+      startYear, endYear, limit = '100',
+      groupFilter, eventTypeFilter
+    } = req.query;
     const sYear = parseInt(startYear, 10);
     const eYear = parseInt(endYear, 10);
     const lim = parseInt(limit, 10);
@@ -233,14 +233,23 @@ app.get('/api/events_in_cluster', async (req, res) => {
     }
 
     const eventsCollection = currentDb.collection('events');
-    const query = {
+    let query = {
       year: { $gte: sYear, $lte: eYear },
       location_geo: { $geoWithin: { $box: [ [fMinLng, fMinLat], [fMaxLng, fMaxLat] ] } }
     };
+
+    if (groupFilter) {
+      query.group = groupFilter;
+    }
+    if (eventTypeFilter) {
+      query.type = eventTypeFilter;
+    }
+
     const events = await eventsCollection.find(query).limit(lim).map(doc => {
       const { _id, ...rest } = doc;
       return { id: _id, ...rest, isCluster: false };
     }).toArray();
+
     res.json(events);
   } catch (error) {
     console.error("Error fetching events in cluster:", error);
@@ -253,7 +262,7 @@ app.get('/api/events_in_cluster', async (req, res) => {
     const currentDb = await getDb();
     const { 
       startYear, endYear, 
-      groupFilter, eventTypeFilter // New filter parameters
+      groupFilter, eventTypeFilter 
     } = req.query;
     const sYear = parseInt(startYear, 10);
     const eYear = parseInt(endYear, 10);
@@ -288,9 +297,9 @@ app.get('/api/events_in_cluster', async (req, res) => {
     ];
     const summaryByGroup = await eventsCollection.aggregate(byGroupPipeline).toArray();
 
-    // Calculate global event type distribution (respects year range and global eventTypeFilter, but not groupFilter)
+    // calculate global event type distribution (respects year range and global eventTypeFilter but not groupFilter)
     let globalEventTypeQuery = { year: { $gte: sYear, $lte: eYear } };
-    if (eventTypeFilter) { // If a global event type filter is set, apply it here too
+    if (eventTypeFilter) {
       globalEventTypeQuery.type = eventTypeFilter;
     }
     const byEventTypeGlobalPipeline = [
@@ -307,13 +316,12 @@ app.get('/api/events_in_cluster', async (req, res) => {
       byEventTypeGlobal: summaryByEventTypeGlobal
     };
 
-    // If a specific group is filtered, also get event types for that group
     if (groupFilter) {
       const eventTypeForGroupQuery = { 
         year: { $gte: sYear, $lte: eYear },
         group: groupFilter 
       };
-      if (eventTypeFilter) { // If there's also a global event type filter, apply it
+      if (eventTypeFilter) {
         eventTypeForGroupQuery.type = eventTypeFilter;
       }
       const eventTypeCountsForSelectedGroupPipeline = [
@@ -326,28 +334,6 @@ app.get('/api/events_in_cluster', async (req, res) => {
       responseJson.eventTypeCountsForSelectedGroup = eventTypeCountsForSelectedGroup;
     }
 
-    // --- Start Debug Logs ---
-    console.log("--- DEBUG: /api/events/summary ---");
-    console.log("Request Query:", JSON.stringify(req.query));
-    console.log("Base Query for byYear/byGroup:", JSON.stringify(baseQuery));
-    console.log("Global Event Type Query for byEventTypeGlobal:", JSON.stringify(globalEventTypeQuery));
-    console.log("Result summaryByEventTypeGlobal length:", summaryByEventTypeGlobal.length);
-    // console.log("Result summaryByEventTypeGlobal sample:", JSON.stringify(summaryByEventTypeGlobal.slice(0,2)));
-
-
-    if (groupFilter) {
-      // The variable eventTypeForGroupQuery is defined a few lines below,
-      // so we can't log it here. The query itself is constructed correctly.
-      if (responseJson.eventTypeCountsForSelectedGroup) {
-        console.log("Result eventTypeCountsForSelectedGroup length:", responseJson.eventTypeCountsForSelectedGroup.length);
-        // console.log("Result eventTypeCountsForSelectedGroup sample:", JSON.stringify(responseJson.eventTypeCountsForSelectedGroup.slice(0,2)));
-      } else {
-        console.log("eventTypeCountsForSelectedGroup is undefined in responseJson");
-      }
-    }
-    // console.log("Full responseJson being sent (first 1000 chars):", JSON.stringify(responseJson, null, 2).substring(0,1000));
-    // --- End Debug Logs ---
-
     res.json(responseJson);
   } catch (error) {
     console.error("Error fetching event summary:", error);
@@ -355,8 +341,8 @@ app.get('/api/events_in_cluster', async (req, res) => {
   }
 });
 
-// Only listen locally if not in a serverless environment (like Vercel)
-// Vercel sets NODE_ENV to 'production' for deployments
+// Only listen locally if not a serverless environment (like Vercel)
+// Vercel sets NODE_ENV to 'production' for deployment
 if (process.env.NODE_ENV !== 'production') {
   getDb().then(() => {
       app.listen(port, () => {

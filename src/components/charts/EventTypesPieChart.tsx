@@ -4,7 +4,7 @@ import type { EventTypeCount } from '@/types';
 
 interface EventTypesPieChartProps {
   data: EventTypeCount[];
-  title?: string; // Optional title for the chart
+  title?: string;
   width?: number;
   height?: number;
 }
@@ -16,7 +16,7 @@ const EventTypesPieChart: React.FC<EventTypesPieChartProps> = ({ data, title = "
     if (!svgRef.current) return;
 
     let tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>;
-    const existingTooltip = d3.select("body").select<HTMLDivElement>(".chart-tooltip-eventtype"); // Use a different class
+    const existingTooltip = d3.select("body").select<HTMLDivElement>(".chart-tooltip-eventtype");
     if (existingTooltip.empty()) {
       tooltip = d3.select("body").append<HTMLDivElement>("div")
         .attr("class", "chart-tooltip-eventtype")
@@ -86,7 +86,7 @@ const EventTypesPieChart: React.FC<EventTypesPieChartProps> = ({ data, title = "
     const g = svg.append('g')
       .attr('transform', `translate(${width / 2},${height / 2})`);
 
-    const color = d3.scaleOrdinal(d3.schemeTableau10); // Different color scheme
+    const color = d3.scaleOrdinal(d3.schemeTableau10); 
 
     const pie = d3.pie<any>().value((d: any) => d.count).sort(null);
     const arcGenerator = d3.arc<any>().innerRadius(radius * 0.5).outerRadius(radius);
@@ -137,7 +137,7 @@ const EventTypesPieChart: React.FC<EventTypesPieChartProps> = ({ data, title = "
     
     return () => {
       if (tooltip && tooltip.classed("chart-tooltip-eventtype")) {
-          tooltip.style('opacity', 0); // Just hide, don't remove if shared
+          tooltip.style('opacity', 0);
       }
     };
 
