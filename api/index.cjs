@@ -62,17 +62,23 @@ app.get('/api/search_groups', async (req, res) => {
       return res.status(400).json({ error: "Search term must be a string." });
     }
 
-    if (term.trim() === "") { // If term is empty or only whitespace, return empty array
-      return res.json([]);
-    }
-
     const eventsCollection = currentDb.collection('events');
-    const query = {
-      year: { $gte: sYear, $lte: eYear },
-      group: new RegExp(term, 'i') // Case-insensitive regex search
-    };
+    let query;
 
-    // Using distinct here is efficient for getting unique group names matching the criteria
+    if (term.trim() === "") {
+      // If term is empty, fetch a default list of groups (e.g., first N alphabetically)
+      // within the year range.
+      query = { year: { $gte: sYear, $lte: eYear } };
+      // We use distinct to get unique group names, then sort and limit in JS.
+      // This is because distinct itself doesn't directly support limit in the same way as find().
+    } else {
+      // If term is not empty, search by term
+      query = {
+        year: { $gte: sYear, $lte: eYear },
+        group: new RegExp(term, 'i') // Case-insensitive regex search
+      };
+    }
+    
     const matchingGroups = await eventsCollection.distinct("group", query);
     
     // Sort and limit results (distinct doesn't have a built-in limit for this use case)

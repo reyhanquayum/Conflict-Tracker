@@ -36,7 +36,8 @@ interface ComboboxProps {
   isLoading?: boolean; 
   inputValue: string; 
   onInputChange: (inputValue: string) => void; 
-  displayValueLabel?: string; // Optional: Explicit label for the trigger when a value is selected
+  displayValueLabel?: string; 
+  onOpen?: () => void; // Callback when popover opens
 }
 
 const Combobox = React.forwardRef<
@@ -54,7 +55,8 @@ const Combobox = React.forwardRef<
   isLoading = false,
   inputValue,
   onInputChange,
-  displayValueLabel
+  displayValueLabel,
+  onOpen
 }, ref) => {
   const [open, setOpen] = React.useState(false);
 
@@ -74,7 +76,15 @@ const Combobox = React.forwardRef<
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover 
+      open={open} 
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (isOpen && onOpen) {
+          onOpen();
+        }
+      }}
+    >
       <PopoverTrigger asChild ref={ref}>
         <Button
           variant="outline"

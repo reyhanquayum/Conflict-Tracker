@@ -1,8 +1,10 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from "react"; // Added useRef
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react"; 
 import BarChart from "@/components/charts/BarChart";
 import PieChart from "@/components/charts/PieChart";
 import EventTypesPieChart from "@/components/charts/EventTypesPieChart";
-import { Combobox } from "@/components/ui/combobox"; // Import Combobox
+import { Combobox } from "@/components/ui/combobox"; 
+import { Button } from "@/components/ui/button"; 
+import BrowseGroupsModal from "@/components/ui/BrowseGroupsModal"; // Import the new modal
 import type {
   EventData,
   OverallSummaryData,
@@ -44,6 +46,8 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
   const [comboboxGroupOptions, setComboboxGroupOptions] = useState<{ value: string; label: string; }[]>([]);
   const [isSearchingGroups, setIsSearchingGroups] = useState(false);
   const groupSearchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [isBrowseGroupsModalOpen, setIsBrowseGroupsModalOpen] = useState(false); // State for new modal
 
   // State for Event Type Combobox (client-side search)
   const [eventTypeSearchTerm, setEventTypeSearchTerm] = useState(""); 
@@ -164,9 +168,8 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
   // This might be an area for future refinement if cluster-specific event type breakdown is needed here.
 
   return (
+    <> {/* Fragment to hold main panel and modal */}
     <div className="w-auto max-w-sm bg-slate-900 text-slate-100 p-4 shadow-lg rounded-lg overflow-y-auto max-h-[calc(100vh-2rem)]">
-      {" "}
-      {/* Changed max-w-md to max-w-sm */}
       <h3 className="text-lg font-semibold text-slate-100 mb-3 border-b border-slate-700 pb-2">
         Dashboard
       </h3>
@@ -213,8 +216,20 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
               isLoading={isSearchingGroups}
               inputValue={groupSearchInput}
               onInputChange={setGroupSearchInput}
-              displayValueLabel={selectedGroup || undefined} // Use selectedGroup directly as its own label
+              displayValueLabel={selectedGroup || undefined} 
+              onOpen={() => {
+                if (groupSearchInput.trim() === "" && !selectedGroup && comboboxGroupOptions.length <= 1) {
+                  fetchSearchedGroups(""); 
+                }
+              }}
             />
+            <Button 
+              variant="link" 
+              className="text-xs text-sky-400 hover:text-sky-300 p-0 h-auto mt-1"
+              onClick={() => setIsBrowseGroupsModalOpen(true)}
+            >
+              Browse all groups...
+            </Button>
           </div>
           <div>
             <label
@@ -264,6 +279,18 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
         </div>
       </div>
     </div>
+    <BrowseGroupsModal
+      isOpen={isBrowseGroupsModalOpen}
+      onClose={() => setIsBrowseGroupsModalOpen(false)}
+      onGroupSelect={(groupName) => {
+        onGroupChange(groupName); // Update App state
+        setGroupSearchInput(groupName); // Update local search input to reflect selection
+        setIsBrowseGroupsModalOpen(false); // Close modal
+      }}
+      allGroups={availableGroups} // Pass all available groups for the current year range
+      currentYearRange={currentYearRange}
+    />
+    </>
   );
 };
 
