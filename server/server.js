@@ -23,7 +23,7 @@ const client = new MongoClient(mongoUri, {
   }
 });
 
-let db;
+let db; //
 
 async function connectDB() {
   try {
