@@ -21,6 +21,7 @@ import type {
   OverallSummaryData,
 } from "@/types";
 
+console.log("[BUILD TIME CHECK] VITE_API_URL in App.tsx:", import.meta.env.VITE_API_URL);
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 function isWebGLAvailable(): boolean {
