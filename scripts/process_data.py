@@ -2,19 +2,21 @@ import pandas as pd
 import os
 from pymongo import MongoClient, UpdateOne, ASCENDING, DESCENDING
 from dotenv import load_dotenv
-import json # Keep for potential debugging or small local outputs if needed
+import json 
 
-# Load environment variables from .env file in the project root
-# Assumes this script is run from the project root: C:/Users/reyha/GitHub/Conflict-Tracker
+'''
+This python script is for processing the data from our dataset (not present in this repo) from ACLED.
+We create an events.json and groups.json from the csv dataset.
+'''
+
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env') 
 load_dotenv(dotenv_path=dotenv_path)
 
 MONGO_URI = os.getenv("MONGO_URI")
-DB_NAME = "conflict_tracker_db" # Or get from .env if you prefer
+DB_NAME = "conflict_tracker_db" 
 EVENTS_COLLECTION_NAME = "events"
 GROUPS_COLLECTION_NAME = "groups"
 
-# Define file paths
 CSV_FILE_PATH = os.path.join("data", "1999-01-01-2025-05-02-Middle_East-Northern_Africa.csv")
 
 def clean_actor_name(actor):
@@ -37,7 +39,6 @@ def main():
         db = client[DB_NAME]
         events_collection = db[EVENTS_COLLECTION_NAME]
         groups_collection = db[GROUPS_COLLECTION_NAME]
-        # Test connection
         client.admin.command('ping')
         print("Successfully connected to MongoDB Atlas.")
     except Exception as e:
@@ -56,7 +57,7 @@ def main():
         return
 
     essential_cols_map = {
-        'event_id_cnty': '_id', # Use event_id_cnty as MongoDB _id for uniqueness
+        'event_id_cnty': '_id',
         'event_date': 'date',
         'year': 'year',
         'event_type': 'type',
@@ -82,7 +83,6 @@ def main():
         events_df['group2'] = "Unknown"
 
     print("Cleaning and transforming event data...")
-    # Convert date to datetime objects for MongoDB, ensure year is integer
     try:
         events_df['date_obj'] = pd.to_datetime(events_df['date'], errors='coerce')
         events_df['year'] = pd.to_numeric(events_df['year'], errors='coerce').astype('Int64') # Handle potential NaNs before int conversion
@@ -93,23 +93,19 @@ def main():
         
     events_df['group1'] = events_df['group1'].apply(clean_actor_name)
     events_df['group2'] = events_df['group2'].apply(clean_actor_name)
-    events_df['group'] = events_df['group1'] # Primary group for quick access
+    events_df['group'] = events_df['group1'] 
 
-    # Create GeoJSON Point for location
     print("Creating GeoJSON Point for locations...")
     events_df['location_geo'] = events_df.apply(
         lambda row: {"type": "Point", "coordinates": [float(row['lon']), float(row['lat'])]} 
         if pd.notnull(row['lon']) and pd.notnull(row['lat']) else None, 
         axis=1
     )
-    # Drop rows where location_geo could not be created (e.g. if lat/lon were originally NaN even after first dropna)
     events_df.dropna(subset=['location_geo'], inplace=True)
 
 
-    # Convert DataFrame to list of dictionaries for MongoDB insertion
     events_to_insert = events_df.to_dict(orient='records')
     
-    # Upsert events data to MongoDB (update if _id exists, insert if not)
     if events_to_insert:
         print(f"Preparing to upsert {len(events_to_insert)} events to MongoDB collection '{EVENTS_COLLECTION_NAME}'...")
         BATCH_SIZE = 5000
@@ -129,14 +125,12 @@ def main():
                 total_modified += result.modified_count
             except Exception as e:
                 print(f"Error during events batch_write to MongoDB (batch starting at index {i}): {e}")
-                # Optionally, decide if you want to stop or continue with next batch
-                return # Stop on error for now
+                return 
         print(f"Total MongoDB events upsert result: {total_upserted} upserted, {total_modified} modified.")
     else:
         print("No event data to insert.")
 
 
-    # Prepare and upsert groups data
     print("Preparing and upserting groups data...")
     all_actors = set(events_df['group1'].unique()) | set(events_df['group2'].unique())
     unique_groups = sorted([name for name in all_actors if name and name != "Unknown"])
@@ -145,8 +139,8 @@ def main():
     for group_name in unique_groups:
         group_doc = {
             "name": group_name,
-            "summary": f"Profile summary for {group_name}.", # Placeholder
-            "ideology": "Unknown" # Placeholder
+            "summary": f"Profile summary for {group_name}.",
+            "ideology": "Unknown"
         }
         group_operations_all.append(
             UpdateOne({"name": group_name}, {"$set": group_doc}, upsert=True)
@@ -156,7 +150,7 @@ def main():
         print(f"Preparing to upsert {len(group_operations_all)} groups to MongoDB collection '{GROUPS_COLLECTION_NAME}'...")
         total_group_upserted = 0
         total_group_modified = 0
-        for i in range(0, len(group_operations_all), BATCH_SIZE): # Using same BATCH_SIZE
+        for i in range(0, len(group_operations_all), BATCH_SIZE): 
             batch_ops = group_operations_all[i:i + BATCH_SIZE]
             print(f"Upserting batch {i // BATCH_SIZE + 1} of {len(batch_ops)} groups...")
             try:
@@ -166,18 +160,18 @@ def main():
                 total_group_modified += result.modified_count
             except Exception as e:
                 print(f"Error during groups batch_write to MongoDB (batch starting at index {i}): {e}")
-                return # Stop on error
+                return 
         print(f"Total MongoDB groups upsert result: {total_group_upserted} upserted, {total_group_modified} modified.")
     else:
         print("No group data to insert.")
 
-    # Create Indexes (This is the correct location for this block)
+
     print("Creating indexes on MongoDB collections...")
     try:
         events_collection.create_index([("year", ASCENDING)])
         events_collection.create_index([("date_obj", DESCENDING)])
         events_collection.create_index([("group", ASCENDING)])
-        events_collection.create_index([("location_geo", "2dsphere")]) # Add 2dsphere index
+        events_collection.create_index([("location_geo", "2dsphere")])
         print(f"Indexes created for '{EVENTS_COLLECTION_NAME}'.")
         
         groups_collection.create_index([("name", ASCENDING)], unique=True)
