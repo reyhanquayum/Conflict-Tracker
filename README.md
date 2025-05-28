@@ -37,6 +37,8 @@ We extend our gratitude to ACLED for making their valuable data publicly availab
 *   **Data Processing (ETL):**
     *   Python (script: `scripts/process_data.py`)
 
+## Gallery
+
 <div style="display: flex; flex-wrap: wrap;">
   <img src="img/img1.png" alt="View of timeline, Dashboard and Event Panel" width="48%" style="margin-right: 2%;">
   <img src="img/img2.png" alt="Selected view of Event Cluster" width="48%;">
