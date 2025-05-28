@@ -21,8 +21,15 @@ import type {
   OverallSummaryData,
 } from "@/types";
 
-console.log("[BUILD TIME CHECK] VITE_API_URL in App.tsx:", import.meta.env.VITE_API_URL);
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+let API_BASE_URL: string;
+if (process.env.NODE_ENV === 'production') {
+  // For production builds (on Vercel), API calls should be relative to the domain root.
+  API_BASE_URL = ""; 
+} else {
+  // For local development, use the localhost address.
+  API_BASE_URL = "http://localhost:3001";
+}
+// console.log("[RUNTIME] Effective API_BASE_URL:", API_BASE_URL); // Optional: for browser console debugging
 
 function isWebGLAvailable(): boolean {
   try {
