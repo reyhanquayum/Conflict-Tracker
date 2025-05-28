@@ -4,16 +4,15 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 3001; // Used for local dev
+const port = process.env.PORT || 3001; // FOR LOCAL
 
 app.use(cors());
 app.use(express.json());
 
 const mongoUri = process.env.MONGO_URI;
-let db; // Database instance
-let client; // MongoDB client instance
+let db; 
+let client; 
 
-// Centralized DB connection function
 async function getDb() {
   if (db) {
     return db;
@@ -23,7 +22,7 @@ async function getDb() {
     throw new Error('MONGO_URI not defined. Cannot connect to database.');
   }
   try {
-    if (!client) { // Initialize client if not already done
+    if (!client) { 
         client = new MongoClient(mongoUri, {
             serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
         });
@@ -34,26 +33,11 @@ async function getDb() {
     return db;
   } catch (err) {
     console.error("Failed to connect to MongoDB", err);
-    // In a serverless context, re-throwing allows Vercel to see the init error
     throw err; 
   }
 }
 
-// Middleware to ensure DB connection before handling request
-// This is useful if you want to ensure DB is ready for all routes,
-// but can add latency. Alternatively, check/connect in each route.
-// For simplicity now, we'll check in each route.
-// app.use(async (req, res, next) => {
-//   try {
-//     await getDb();
-//     next();
-//   } catch (error) {
-//     res.status(503).json({ error: "Database connection failed" });
-//   }
-// });
-
-
-// Helper function for grid precision
+// need helper for grid
 function getGridPrecision(zoomLevel) {
   if (zoomLevel < 5) return 0; 
   if (zoomLevel < 8) return 1; 
@@ -61,9 +45,9 @@ function getGridPrecision(zoomLevel) {
   return 3; 
 }
 
-// --- Define API Routes ---
+// --- deefine API routes ---
 
-app.get('/api/config/datarange', async (req, res) => { // Added /api prefix
+app.get('/api/config/datarange', async (req, res) => {
   try {
     const currentDb = await getDb();
     const eventsCollection = currentDb.collection('events');
@@ -81,23 +65,21 @@ app.get('/api/config/datarange', async (req, res) => { // Added /api prefix
   }
 });
 
-app.get('/api/events', async (req, res) => { // Added /api prefix
+app.get('/api/events', async (req, res) => {
   try {
     const currentDb = await getDb();
     const { startYear, endYear, zoomLevel = '5', mapBounds, centerLat, centerLng } = req.query;
     const sYear = parseInt(startYear, 10);
     const eYear = parseInt(endYear, 10);
     const zoom = parseFloat(zoomLevel);
-    // ... (rest of your validation and query logic for /events) ...
     const eventsCollection = currentDb.collection('events');
     let baseQuery = { year: { $gte: sYear, $lte: eYear } };
-    // Note: Geospatial filtering logic was here, currently bypassed for $match
-    // This might be a TODO to re-enable if view-dependent clusters are desired.
+  
     const precision = getGridPrecision(zoom);
     const factor = Math.pow(10, precision);
     const aggregationPipeline = [
       { $match: baseQuery },
-      { $group: { /* ... your $group stage ... */ 
+      { $group: {
             _id: { 
               lat_rounded: { $trunc: [ { $multiply: [ "$lat", factor ] }, 0 ] },
               lon_rounded: { $trunc: [ { $multiply: [ "$lon", factor ] }, 0 ] }
@@ -110,7 +92,7 @@ app.get('/api/events', async (req, res) => { // Added /api prefix
             minLng: { $min: "$lon" },
             maxLng: { $max: "$lon" }
       }},
-      { $project: { /* ... your $project stage ... */ 
+      { $project: {
             _id: 0, 
             lat: { $round: ["$lat", 4] }, 
             lon: { $round: ["$lon", 4] },
@@ -131,15 +113,14 @@ app.get('/api/events', async (req, res) => { // Added /api prefix
   }
 });
 
-app.get('/api/events_in_cluster', async (req, res) => { // Added /api prefix
+app.get('/api/events_in_cluster', async (req, res) => {
   try {
     const currentDb = await getDb();
-    // ... (your validation and query logic for /events_in_cluster) ...
     const { minLat, maxLat, minLng, maxLng, startYear, endYear, limit = '100' } = req.query;
     const sYear = parseInt(startYear, 10);
     const eYear = parseInt(endYear, 10);
     const lim = parseInt(limit, 10);
-    const fMinLat = parseFloat(minLat); /* ... and other floats ... */
+    const fMinLat = parseFloat(minLat); 
     const fMaxLat = parseFloat(maxLat);
     const fMinLng = parseFloat(minLng);
     const fMaxLng = parseFloat(maxLng);
@@ -165,10 +146,9 @@ app.get('/api/events_in_cluster', async (req, res) => { // Added /api prefix
   }
 });
 
-app.get('/api/events/summary', async (req, res) => { // Added /api prefix
+app.get('/api/events/summary', async (req, res) => {
   try {
     const currentDb = await getDb();
-    // ... (your validation and query logic for /events/summary) ...
     const { startYear, endYear } = req.query;
     const sYear = parseInt(startYear, 10);
     const eYear = parseInt(endYear, 10);
@@ -178,14 +158,14 @@ app.get('/api/events/summary', async (req, res) => { // Added /api prefix
     }
     const eventsCollection = currentDb.collection('events');
     const baseQuery = { year: { $gte: sYear, $lte: eYear } };
-    const byYearPipeline = [ /* ... */ 
+    const byYearPipeline = [
         { $match: baseQuery },
         { $group: { _id: "$year", count: { $sum: 1 } } },
         { $project: { _id: 0, year: { $toString: "$_id" }, count: 1 } },
         { $sort: { year: 1 } }
     ];
     const summaryByYear = await eventsCollection.aggregate(byYearPipeline).toArray();
-    const byGroupPipeline = [ /* ... */ 
+    const byGroupPipeline = [
         { $match: baseQuery },
         { $group: { _id: "$group", count: { $sum: 1 } } },
         { $project: { _id: 0, group: "$_id", count: 1 } },
@@ -200,20 +180,18 @@ app.get('/api/events/summary', async (req, res) => { // Added /api prefix
 });
 
 // Only listen locally if not in a serverless environment (like Vercel)
-// Vercel sets NODE_ENV to 'production' for deployments.
+// Vercel sets NODE_ENV to 'production' for deployments
 if (process.env.NODE_ENV !== 'production') {
-  // Ensure DB is connected before starting local server
   getDb().then(() => {
       app.listen(port, () => {
         console.log(`Server listening locally at http://localhost:${port}`);
       });
     }).catch(err => {
       console.error("Local server startup failed due to DB connection error:", err);
-      process.exit(1); // Exit if DB connection fails for local dev
+      process.exit(1);
     });
 }
 
-// Graceful shutdown for local dev (won't run on Vercel serverless)
 process.on('SIGINT', async () => {
   if (client && client.topology && client.topology.isConnected()) {
     console.log('Shutting down server...');
@@ -223,4 +201,4 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-module.exports = app; // Export the Express app for Vercel
+module.exports = app; // export for vercel i miseed this bruh

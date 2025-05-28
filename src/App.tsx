@@ -22,14 +22,14 @@ import type {
 } from "@/types";
 
 let API_BASE_URL: string;
+// for prod
 if (process.env.NODE_ENV === 'production') {
-  // For production builds (on Vercel), API calls should be relative to the domain root.
   API_BASE_URL = ""; 
 } else {
-  // For local development, use the localhost address.
+  // for local
   API_BASE_URL = "http://localhost:3001";
 }
-// console.log("[RUNTIME] Effective API_BASE_URL:", API_BASE_URL); // Optional: for browser console debugging
+// console.log("[RUNTIME] Effective API_BASE_URL:", API_BASE_URL);
 
 function isWebGLAvailable(): boolean {
   try {
@@ -129,20 +129,20 @@ function App() {
         else if (mapView.altitude < 2.0) calculatedZoomLevel = 7;
         apiUrl += `&zoomLevel=${calculatedZoomLevel}`;
         apiUrl += `&centerLat=${mapView.lat}&centerLng=${mapView.lng}`;
-        // console.log( // Dev log for cluster request details
+        // console.log(
         //   `[App] Requesting CLUSTERS. Altitude: ${mapView.altitude.toFixed(2)}, Zoom: ${calculatedZoomLevel}, Center: ${mapView.lat.toFixed(2)},${mapView.lng.toFixed(2)}`
         // );
       } else {
-        apiUrl += `&zoomLevel=${calculatedZoomLevel}`; // Initial load zoom
+        apiUrl += `&zoomLevel=${calculatedZoomLevel}`; // initial zoom
         // console.log(`[App] Initial load, requesting CLUSTERS. Default Zoom: ${calculatedZoomLevel}`);
       }
 
-      // console.log(`Fetching clusters from: ${apiUrl}`); // Can be noisy
+      // console.log(`Fetching clusters from: ${apiUrl}`);
       fetch(apiUrl)
         .then((res) => res.json())
         .then((data: ClusterData[]) => {
           setClusterDisplayData(data);
-          // console.log(`Received ${data.length} clusters from API.`); // A bit verbose for production
+          // console.log(`Received ${data.length} clusters from API.`);
         })
         .catch((err) => {
           console.error("Error loading clusters from API:", err);
@@ -161,9 +161,6 @@ function App() {
         .then((res) => res.json())
         .then((data: OverallSummaryData) => {
           setOverallSummaryData(data);
-          // console.log( // Verbose for production
-          //   `Received overall summary data: ${data.byYear.length} years, ${data.byGroup.length} groups.`
-          // );
         })
         .catch((err) => {
           console.error("Error loading overall summary data:", err);
@@ -183,18 +180,17 @@ function App() {
   );
 
   const handleViewChange = useCallback((newView: MapView) => {
-    // console.log("GlobeDisplay reported view change:", newView); // Raw view changes
     if (mapViewUpdateTimeoutRef.current) {
       clearTimeout(mapViewUpdateTimeoutRef.current);
     }
     mapViewUpdateTimeoutRef.current = setTimeout(() => {
-      // console.log( // Dev log for debounced view change
+      // console.log(
       //   "Debounced: Setting MapView and triggering API fetch for clusters:",
       //   newView
       // );
       setMapView(newView);
     }, 500); 
-  }, []); // Empty dependency array, uses ref
+  }, []);
 
   // cleanup timeout on component unmount
   useEffect(() => {
@@ -208,10 +204,10 @@ function App() {
   const handleClusterClick = useCallback(
     (cluster: ClusterData) => {
       if (!currentYearRange) return;
-      // console.log("Cluster clicked:", cluster); // Informative, but can be noisy
+      // console.log("Cluster clicked:", cluster);
       setSelectedCluster(cluster);
       setIsLoadingClusterDetails(true);
-      setDetailedEventsInCluster(null); // Clear previous details
+      setDetailedEventsInCluster(null);
 
       // cluster.bounds which should be returned by the /api/events endpoint
       const { minLat, maxLat, minLng, maxLng } = cluster.bounds;
@@ -219,7 +215,7 @@ function App() {
 
       const detailApiUrl = `${API_BASE_URL}/api/events_in_cluster?minLat=${minLat}&maxLat=${maxLat}&minLng=${minLng}&maxLng=${maxLng}&startYear=${start}&endYear=${end}&limit=100`;
 
-      // console.log("Fetching detailed events for cluster:", detailApiUrl); // Can be noisy
+      // console.log("Fetching detailed events for cluster:", detailApiUrl);
       fetch(detailApiUrl)
         .then((res) => res.json())
         .then((events: EventData[]) => {
