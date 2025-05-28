@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react"; // Removed 'React' default import
 import GlobeDisplay from "./components/visualization/GlobeDisplay";
 import TimelineSlider from "./components/ui/TimelineSlider";
 import DashboardPanel from "./components/ui/DashboardPanel";

@@ -19,11 +19,11 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
   isClusterSelected,
 }) => {
   // Determine data for charts based on whether a cluster is selected
-  const barChartData = isClusterSelected 
+  const barChartData: EventData[] | YearlyCount[] = isClusterSelected 
     ? (detailedEventsData || []) 
     : (overallSummaryData ? overallSummaryData.byYear : []); 
   
-  const pieChartData = isClusterSelected
+  const pieChartData: EventData[] | GroupCount[] = isClusterSelected
     ? (detailedEventsData || []) 
     : (overallSummaryData ? overallSummaryData.byGroup : []); 
 

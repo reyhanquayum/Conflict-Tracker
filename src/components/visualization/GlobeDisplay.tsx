@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from "react-globe.gl";
-import { Color, CylinderGeometry, MeshBasicMaterial, Mesh, SphereGeometry } from "three"; // Added SphereGeometry
+import { Color, CylinderGeometry, MeshBasicMaterial, Mesh } from "three"; // Removed SphereGeometry
 import type { ClusterData, MapView } from "@/types"; 
 
 const GEOJSON_FILE_URL = "/data/geodata/countries.geojson";
