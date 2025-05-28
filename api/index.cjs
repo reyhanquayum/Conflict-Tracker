@@ -47,8 +47,8 @@ connectDB().then(() => {
     return 3; // 0.001 degree (fine detail)
   }
 
-  // GET /api/events  this for event clusters for the globe display
-  app.get('/api/events', async (req, res) => {
+  // GET /events  this for event clusters for the globe display
+  app.get('/events', async (req, res) => { // Removed /api prefix
     if (!db) {
       return res.status(503).json({ error: "Database not connected" });
     }
@@ -149,7 +149,7 @@ connectDB().then(() => {
     }
   });
 
-  app.get('/api/events_in_cluster', async (req, res) => {
+  app.get('/events_in_cluster', async (req, res) => { // Removed /api prefix
     if (!db) {
       return res.status(503).json({ error: "Database not connected" });
     }
@@ -200,7 +200,7 @@ connectDB().then(() => {
     }
   });
 
-  app.get('/api/config/datarange', async (req, res) => {
+  app.get('/config/datarange', async (req, res) => { // Removed /api prefix
     if (!db) {
       return res.status(503).json({ error: "Database not connected" });
     }
@@ -227,7 +227,7 @@ connectDB().then(() => {
     }
   });
 
-  app.get('/api/events/summary', async (req, res) => {
+  app.get('/events/summary', async (req, res) => { // Removed /api prefix
     if (!db) {
       return res.status(503).json({ error: "Database not connected" });
     }
@@ -286,4 +286,4 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-module.exports = app; 
+module.exports = app;
