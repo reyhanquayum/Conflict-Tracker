@@ -1,5 +1,7 @@
 # MENA Interactive Geospatial Conflict Tracker
 
+[View the project here!](https://conflict-tracker-ten.vercel.app/)
+
 This is an interactive 3D data visualization of extremist activity and conflict events, primarily focusing on the Middle East and North Africa (MENA) region. This application allows users to explore event data across a timeline on a 3D globe, view aggregated statistics, and also view specific event details.
 
 ## Key Features
