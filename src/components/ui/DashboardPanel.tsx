@@ -8,8 +8,6 @@ import BrowseGroupsModal from "@/components/ui/BrowseGroupsModal"; // Import the
 import type {
   EventData,
   OverallSummaryData,
-  YearlyCount,
-  GroupCount,
   EventTypeCount,
 } from "@/types";
 
