@@ -9,7 +9,6 @@ const port = process.env.PORT || 3001;
 app.use(cors()); 
 app.use(express.json()); 
 
-// MongoDB Connection URI
 const mongoUri = process.env.MONGO_URI;
 if (!mongoUri) {
   console.error('Error: MONGO_URI is not defined in .env file');
@@ -84,7 +83,7 @@ connectDB().then(() => {
         year: { $gte: sYear, $lte: eYear }
       };
 
-      // Define Earth radius for $centerSphere conversion
+      // define Earth radius for $centerSphere conversion
       const EARTH_RADIUS_KM = 6371;
 
       // Geospatial filtering logic will be kept for reference but NOT applied to baseQuery for this test
@@ -93,26 +92,22 @@ connectDB().then(() => {
         // ... (geospatial filter logic as before, but it won't modify baseQuery directly here)
         // We'll log if it *would* have been active
         geoFilterActive = true;
-        // console.log(`Geospatial filter WOULD be active for center [${cLng},${cLat}] at zoom ${zoom}`); // Removed dev log
+        // console.log(`Geospatial filter WOULD be active for center [${cLng},${cLat}] at zoom ${zoom}`);
       } else if (mapBounds) {
         // ... (mapBounds logic)
         // geoFilterActive = true; // if mapBounds were valid
         // console.log(`Geospatial filter based on mapBounds WOULD be active.`); // Removed dev log
       }
       
-      // Note: The geospatial filtering ($centerSphere or $box based on cLat/cLng/mapBounds)
-      // was temporarily bypassed for the $match stage of the aggregationPipeline below
-      // Currently, clusters are formed from all events in the sYear-eYear range
-      // To re-enable view-dependent clustering, the 'query' object in $match
 
-      // would need to incorporate the geospatial filters. This might be a TODO.
+      // would need to incorporate the geospatial filters. This might be a TODO
       
-      // console.log(`Fetching clusters for base query (year range only for this test):`, baseQuery, `Grid Precision Zoom: ${zoom}`); // Removed dev log
+      // console.log(`Fetching clusters for base query (year range only for this test):`, baseQuery, `Grid Precision Zoom: ${zoom}`);
       const precision = getGridPrecision(zoom); 
       const factor = Math.pow(10, precision);
 
       const aggregationPipeline = [
-        { $match: baseQuery }, // Use baseQuery (year range only) for the $match stage
+        { $match: baseQuery }, 
         {
           $group: {
             _id: { 
@@ -214,7 +209,7 @@ connectDB().then(() => {
       const result = await eventsCollection.aggregate([
         {
           $group: {
-            _id: null, // Group all documents together
+            _id: null, // grpoup all documents together
             minYear: { $min: "$year" },
             maxYear: { $max: "$year" }
           }
@@ -248,7 +243,7 @@ connectDB().then(() => {
       const eventsCollection = db.collection('events');
       const baseQuery = { year: { $gte: sYear, $lte: eYear } };
 
-      // Aggregation 1: Counts by year
+      // Aggregation 1: Counts by yr
       const byYearPipeline = [
         { $match: baseQuery },
         { $group: { _id: "$year", count: { $sum: 1 } } },
@@ -257,7 +252,7 @@ connectDB().then(() => {
       ];
       const summaryByYear = await eventsCollection.aggregate(byYearPipeline).toArray();
 
-      // aggergatuon 2: Counts by group
+      // aggregation 2: Counts by group
       const byGroupPipeline = [
         { $match: baseQuery },
         { $group: { _id: "$group", count: { $sum: 1 } } },
@@ -290,3 +285,5 @@ process.on('SIGINT', async () => {
   console.log('MongoDB connection closed.');
   process.exit(0);
 });
+
+module.exports = app; 
