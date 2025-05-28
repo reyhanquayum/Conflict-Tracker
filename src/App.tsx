@@ -100,7 +100,6 @@ function App() {
           setCurrentYearRange({ start: data.minYear, end: data.maxYear });
           setDataRangeLoaded(true);
         } else {
-          /* ... error handling ... */
           console.error("Failed to fetch valid data range from API.");
           const currentSystemYear = new Date().getFullYear();
           setMinYear(1990);
@@ -110,7 +109,6 @@ function App() {
         }
       })
       .catch((err) => {
-        /* ... error handling ... */
         console.error("Error loading data range from API:", err);
         const currentSystemYear = new Date().getFullYear();
         setMinYear(1990);
@@ -189,7 +187,7 @@ function App() {
     }
   }, [currentYearRange, dataRangeLoaded, selectedGroupFilter, selectedEventTypeFilter]); // Added filters to dependencies
 
-  // Fetch filter options (groups, event types) when currentYearRange changes
+  // fetch filter options (groups, event types) when currentYearRange changes
   useEffect(() => {
     if (currentYearRange && dataRangeLoaded) {
       const { start, end } = currentYearRange;
@@ -214,22 +212,20 @@ function App() {
       setCurrentYearRange({ start: startYear, end: endYear });
       setSelectedCluster(null);
       setDetailedEventsInCluster(null);
-      // Reset filters when year range changes? Or keep them? For now, let's keep them.
-      // setSelectedGroupFilter(null); 
-      // setSelectedEventTypeFilter(null);
+
     },
     []
   );
 
   const handleGroupFilterChange = useCallback((group: string | null) => {
     setSelectedGroupFilter(group);
-    setSelectedCluster(null); // Clear selected cluster when global filters change
+    setSelectedCluster(null);
     setDetailedEventsInCluster(null);
   }, []);
 
   const handleEventTypeFilterChange = useCallback((eventType: string | null) => {
     setSelectedEventTypeFilter(eventType);
-    setSelectedCluster(null); // Clear selected cluster
+    setSelectedCluster(null);
     setDetailedEventsInCluster(null);
   }, []);
 
@@ -309,6 +305,11 @@ function App() {
     }
   };
 
+  const handleShowHelpModal = () => {
+    setShowInfoModal(true);
+
+  };
+
   if (!webGLSupported) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-slate-900 text-slate-100 p-8 text-center">
@@ -333,7 +334,15 @@ function App() {
       />
       {dataRangeLoaded && currentYearRange && (
         <div
-          className={`timeline-container absolute bottom-0 left-0 right-0 z-20 p-4 transition-opacity duration-300 ease-in-out ${
+          style={{
+            position: 'absolute',
+            bottom: '0px',
+            left: isDashboardVisible ? `calc(384px + 1rem)` : '1rem',
+            right: selectedCluster ? `calc(384px + 1rem)` : '1rem',
+            zIndex: 20,
+            transition: 'left 0.3s ease-in-out, right 0.3s ease-in-out, opacity 0.3s ease-in-out',
+          }}
+          className={`timeline-container p-4 ${ 
             isTimelineFocused ? "opacity-100" : "opacity-60 hover:opacity-90"
           }`}
         >
@@ -370,6 +379,7 @@ function App() {
             availableEventTypes={availableEventTypes}
             selectedEventType={selectedEventTypeFilter}
             onEventTypeChange={handleEventTypeFilterChange}
+            onShowHelp={handleShowHelpModal}
           />
         )}
         <Button

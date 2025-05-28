@@ -51,24 +51,31 @@ We extend our gratitude to ACLED for making their valuable data publicly availab
 *   Python 3.x (for the data processing script, if running ETL)
 *   MongoDB instance (local or cloud-hosted, e.g., MongoDB Atlas)
 
-### Backend Setup
+### Backend Setup (Local Development)
 
-1.  Navigate to the `server` directory: `cd server`
-2.  Install dependencies: `npm install`
-3.  Create a `.env` file in the root directory with your MongoDB URI:
-    ```
+1.  Ensure you are in the project root directory.
+2.  All backend dependencies are now part of the main `package.json`. Install them by running `npm install` (or `yarn install`) in the project root if you haven't already.
+3.  Create a `.env` file in the **project root directory** with your MongoDB URI and Port:
+    ```env
     MONGO_URI=your_mongodb_connection_string
-    PORT=3001
+    PORT=3001 
     ```
-4.  Start the backend server: `npm start`
+    (Note: `PORT` is optional for Vercel deployment but used for local execution.)
+4.  Start the backend server from the project root:
+    ```bash
+    node api/index.cjs
+    ```
     The server will typically run on `http://localhost:3001`.
 
-### Frontend Setup
+### Frontend Setup (Local Development)
 
-1.  Navigate to the project root directory (if not already there).
-2.  Install dependencies: `npm install`
-3.  Ensure the backend server is running. The frontend expects the API at `http://localhost:3001`.
-4.  Start the frontend development server: `npm run dev`
+1.  Navigate to the project root directory.
+2.  Install dependencies (if not already done for backend): `npm install` (or `yarn install`)
+3.  Ensure the backend server (`node api/index.cjs`) is running in a separate terminal. The frontend expects the API at `http://localhost:3001`.
+4.  Start the frontend development server:
+    ```bash
+    npm run dev
+    ```
     The application will typically be available at `http://localhost:5173`.
 
 ### Data Processing (One-time ETL)

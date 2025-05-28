@@ -1,28 +1,26 @@
 import React from 'react';
 import type { EventData, ClusterData } from '@/types';
-import ExpandableText from './ExpandableText'; // Import ExpandableText
+import ExpandableText from './ExpandableText';
 
 interface EventDetailPanelProps {
-  cluster: ClusterData | null; // The selected cluster
-  events: EventData[] | null;  // List of events within that cluster
+  cluster: ClusterData | null; // the selected cluster
+  events: EventData[] | null;  // list of events within that cluster
   isLoading: boolean;
   onClose: () => void;
 }
 
 const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ cluster, events, isLoading, onClose }) => {
-  // Panel is only shown if a cluster is selected (logic in App.tsx)
-  // So, if this component renders, 'cluster' should not be null.
-  // However, 'events' can be null initially while loading, or empty if no events.
 
-  if (!cluster) { // Should not happen if App.tsx logic is correct, but as a safeguard
+
+  if (!cluster) {
     return null;
   }
 
   return (
-    <div className="absolute top-4 right-4 h-auto max-h-[calc(100vh-2rem)] w-1/3 max-w-sm bg-slate-900 text-slate-100 p-6 shadow-lg overflow-y-auto transition-transform transform-gpu z-20 rounded-lg"> {/* Changed max-w-md to max-w-sm */}
-      <div className="flex justify-between items-center mb-4">
+    <div className="absolute top-4 right-4 h-[calc(100vh-5rem)] w-1/3 max-w-sm bg-slate-900 text-slate-100 p-6 shadow-lg overflow-y-auto transition-transform transform-gpu z-20 rounded-lg flex flex-col">
+      <div className="flex justify-between items-center mb-4 shrink-0"> 
         <h3 className="text-xl font-semibold text-slate-100">
-          Cluster Details ({cluster.count} events)
+          Cluster Details ({events ? events.length : cluster.count} events)
         </h3>
         <button 
           onClick={onClose} 
@@ -35,13 +33,13 @@ const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ cluster, events, is
         </button>
       </div>
       
-      {isLoading && <p className="text-slate-400">Loading events...</p>}
+      {isLoading && <p className="text-slate-400 py-4 text-center">Loading events...</p>}
 
       {!isLoading && events && events.length > 0 && (
-        <div className="space-y-2 text-xs overflow-y-auto max-h-[calc(100vh-12rem)]"> {/* Max height for list */}
+        <div className="space-y-2 text-xs overflow-y-auto flex-grow pr-1">
           {events.map(event => (
             <div key={event.id} className="p-2 border-b border-slate-700 last:border-b-0">
-              <p><strong className="text-slate-300">ID:</strong> {event.id}</p>
+              <p><strong className="text-slate-300">ID:</strong> {event.id}</p> 
               <p><strong className="text-slate-300">Date:</strong> {event.date}</p>
               <p><strong className="text-slate-300">Group:</strong> {event.group}</p>
               <p><strong className="text-slate-300">Type:</strong> {event.type}</p>
