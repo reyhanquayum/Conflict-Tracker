@@ -7,8 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-data/*
-public/data/*
+data/* 
+public/data/__pycache__
+public/data/events.json
+public/data/groups.json
 node_modules
 dist
 dist-ssr
