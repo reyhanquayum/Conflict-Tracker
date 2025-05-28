@@ -5,20 +5,20 @@ import type { ClusterData, MapView } from "@/types";
 
 const GEOJSON_FILE_URL = "/data/geodata/countries.geojson";
 
-// Type guards are no longer needed here as this component only deals with clusters now
+// this component is responsible for rendering the 3d globe and its objects (clusters)
 
 interface GlobeDisplayProps {
-  clusters: ClusterData[]; // Renamed prop from 'events' to 'clusters'
+  clusters: ClusterData[]; 
   onViewChange?: (view: MapView) => void;
-  onClusterClick?: (cluster: ClusterData) => void; // New prop for cluster clicks
+  onClusterClick?: (cluster: ClusterData) => void; 
 }
 
 const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onClusterClick }) => {
   const [countries, setCountries] = useState<{ features: any[] }>({ features: [] });
-  const [userInteracted, setUserInteracted] = useState(false);
-  const globeEl = useRef<any>(null);
+  const [userInteracted, setUserInteracted] = useState(false); // tracks if user has interacted, to stop auto-rotate
+  const globeEl = useRef<any>(null); // ref to the globe instance
   const [hoveredCluster, setHoveredCluster] = useState<ClusterData | null>(null); 
-  const hoverDebounceTimerRef = useRef<NodeJS.Timeout | null>(null); // Ref for hover debounce timer
+  const hoverDebounceTimerRef = useRef<NodeJS.Timeout | null>(null); 
 
   const handleObjectHover = useCallback((obj: object | null) => {
     if (hoverDebounceTimerRef.current) {
@@ -26,10 +26,10 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     }
     hoverDebounceTimerRef.current = setTimeout(() => {
       setHoveredCluster(obj as ClusterData | null);
-    }, 75); // 75ms debounce for hover, adjust as needed
+    }, 75); // a short debounce for hover seems to feel better
   }, []);
 
-  // Cleanup debounce timer on unmount
+  // cleanup for the hover debounce timer
   useEffect(() => {
     return () => {
       if (hoverDebounceTimerRef.current) {
@@ -112,43 +112,38 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
         console.warn("globe.pointOfView method not available. Cannot set initial camera position.");
       }
     }
-    // This effect should run once on mount, or if globeEl changes (which it shouldn't after init)
-    // Do not add userInteracted to dependency array here, or it will re-center if userInteracted becomes false
-  }, [globeEl]); // Run when globeEl is set.
+    // This effect should run once on mount to set the initial camera.
+    // Not including userInteracted in deps, otherwise it might re-center unexpectedly.
+  }, [globeEl]); 
 
-  // Function to create the 3D object for each cluster
+  // creates the 3D cone object for each cluster
   const createClusterObject = useCallback((obj: any) => {
-    const cluster = obj as ClusterData; // This is the cluster data for the current object
+    const cluster = obj as ClusterData; 
     if (!cluster || typeof cluster.count !== 'number') {
-      return new Mesh(); // Return an empty mesh if data is invalid
+      return new Mesh(); // return empty mesh if data is weird
     }
 
-    const MAX_HEIGHT = 10.0; // Max height for a spike (e.g., 20% of globe radius)
-    const MIN_HEIGHT = 0.5;  // Min height for a spike (e.g., 0.5% of globe radius)
+    // these constants control the spike appearance, might need tweaking
+    const MAX_HEIGHT = 10.0; 
+    const MIN_HEIGHT = 0.5;  
     const BASE_RADIUS = Math.log2(cluster.count + 1) * 0.05 + 0.05; 
 
-    let rawHeight = Math.log10(cluster.count + 1) * 10.0; // Significantly increased multiplier
+    let rawHeight = Math.log10(cluster.count + 1) * 10.0; 
     let finalHeight = Math.max(MIN_HEIGHT, Math.min(rawHeight, MAX_HEIGHT));
-
-    // if (cluster.count > 1) { // Temporarily commented out to reduce console noise
-        // console.log(`Cluster count: ${cluster.count}, BaseRadius: ${BASE_RADIUS.toFixed(3)}, RawHeight: ${rawHeight.toFixed(3)}, FinalHeight: ${finalHeight.toFixed(3)}`);
-    // }
     
-    // Changed radiusTop from BASE_RADIUS to 0 to make a cone (spike)
-    const geometry = new CylinderGeometry(0, BASE_RADIUS, finalHeight, 8); 
+    const geometry = new CylinderGeometry(0, BASE_RADIUS, finalHeight, 8); // cone shape
     
-    let materialColor = 'orange';
+    let materialColor = 'orange'; // default color
     let materialOpacity = 0.75;
 
     if (hoveredCluster) {
-      // Check if the current cluster (obj) is the same as hoveredCluster
-      // Need a stable ID for comparison, or compare by lat/lon if precise enough
-      // Assuming lat/lon are good enough for this demo if no explicit ID
+      // using lat/lon/count for hover comparison, not ideal but works for now.
+      // a unique cluster ID from backend would be more robust.
       if (cluster.lat === hoveredCluster.lat && cluster.lon === hoveredCluster.lon && cluster.count === hoveredCluster.count) {
-        materialColor = 'orangered'; // Highlight hovered
+        materialColor = 'orangered'; // highlight the one we're hovering
         materialOpacity = 0.9;
       } else {
-        materialColor = '#555555'; // Desaturated grey for non-hovered
+        materialColor = '#555555'; // dim others
         materialOpacity = 0.5;
       }
     }
@@ -156,17 +151,15 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
     const material = new MeshBasicMaterial({ color: materialColor, opacity: materialOpacity, transparent: true });
     
     const mesh = new Mesh(geometry, material);
-    // Position the base of the cylinder on the globe surface
-    // The object's altitude is handled by objectAltitude prop or default behavior
     
-    // Rotate around X to make the original Y-axis (height) align with the Z-axis.
-    // Positive PI/2 should make the tip (original +Y) point along the new +Z.
+    // this rotation makes the cone "stand up" correctly
+    // because react-globe.gl orients the object's local Z-axis outwards.
     mesh.rotation.x = Math.PI / 2; 
-    // NO translation for this test. The center of the cone's height will be at objectAltitude.
+    // The cone's geometric center will be at objectAltitude due to no local translation.
 
     return mesh; 
 
-  }, [hoveredCluster]); // Add hoveredCluster as a dependency
+  }, [hoveredCluster]); 
 
   const getObjectLabel = useCallback((obj: any) => {
     const cluster = obj as ClusterData;
@@ -183,14 +176,14 @@ const GlobeDisplay: React.FC<GlobeDisplayProps> = ({ clusters, onViewChange, onC
         polygonSideColor={() => "rgba(71, 85, 105, 0.7)"}
         polygonStrokeColor={() => "#4A5568"}
         polygonLabel={() => ''}
-        objectsData={clusters} // Changed from pointsData
-        objectLat="lat"        // Changed from pointLat
-        objectLng="lon"        // Changed from pointLng
-        objectAltitude={0.01}  // Altitude for the base of the object
+        objectsData={clusters} 
+        objectLat="lat"        
+        objectLng="lon"        
+        objectAltitude={0.01}  // places the center of our cone slightly off the surface
         objectThreeObject={createClusterObject}
         objectLabel={getObjectLabel}
         onObjectClick={handleObjectClick} 
-        onObjectHover={handleObjectHover} // Added hover handler
+        onObjectHover={handleObjectHover} 
       />
     </div>
   );

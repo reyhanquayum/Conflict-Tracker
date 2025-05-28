@@ -1,4 +1,4 @@
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config();
 const express = require('express');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const cors = require('cors');
@@ -6,9 +6,8 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors()); // Enable CORS for all routes
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(cors()); 
+app.use(express.json()); 
 
 // MongoDB Connection URI
 const mongoUri = process.env.MONGO_URI;
@@ -31,7 +30,7 @@ async function connectDB() {
   try {
     await client.connect();
     db = client.db("conflict_tracker_db");
-    console.log("Successfully connected to MongoDB Atlas!");
+    console.log("Successfully connected to MongoDB Atlas!"); 
   } catch (err) {
     console.error("Failed to connect to MongoDB", err);
     process.exit(1);
@@ -39,18 +38,17 @@ async function connectDB() {
 }
 
 connectDB().then(() => {
-  // API Endpoints
+  // API
 
-  // Helper function to determine grid precision based on zoom level
   function getGridPrecision(zoomLevel) {
-    // Coarser grid: fewer, larger clusters, especially when zoomed out
-    if (zoomLevel < 5) return 0; // Degrees (very coarse, e.g., for zoom levels 0-4)
-    if (zoomLevel < 8) return 1; // 0.1 degree (coarse, e.g., for zoom levels 5-7)
-    if (zoomLevel < 11) return 2; // 0.01 degree (medium, e.g., for zoom levels 8-10)
-    return 3; // 0.001 degree (fine, e.g., for zoom levels 11+)
+
+    if (zoomLevel < 5) return 0; // degrees (very coarse)
+    if (zoomLevel < 8) return 1; // 0.1 degree (coarse)
+    if (zoomLevel < 11) return 2; // 0.01 degree (medium)
+    return 3; // 0.001 degree (fine detail)
   }
 
-  // GET /api/events - Get events or clusters based on year range, map bounds, and zoom
+  // GET /api/events  this for event clusters for the globe display
   app.get('/api/events', async (req, res) => {
     if (!db) {
       return res.status(503).json({ error: "Database not connected" });
@@ -60,9 +58,9 @@ connectDB().then(() => {
         startYear, 
         endYear, 
         zoomLevel = '5', 
-        mapBounds, // e.g., "minLng,minLat,maxLng,maxLat" - currently not sent by client
-        centerLat, // New: center latitude of the map view
-        centerLng  // New: center longitude of the map view
+        mapBounds,
+        centerLat, 
+        centerLng  
       } = req.query;
 
       const sYear = parseInt(startYear, 10);
@@ -95,18 +93,21 @@ connectDB().then(() => {
         // ... (geospatial filter logic as before, but it won't modify baseQuery directly here)
         // We'll log if it *would* have been active
         geoFilterActive = true;
-        console.log(`Geospatial filter WOULD be active for center [${cLng},${cLat}] at zoom ${zoom}`);
+        // console.log(`Geospatial filter WOULD be active for center [${cLng},${cLat}] at zoom ${zoom}`); // Removed dev log
       } else if (mapBounds) {
         // ... (mapBounds logic)
         // geoFilterActive = true; // if mapBounds were valid
-        console.log(`Geospatial filter based on mapBounds WOULD be active.`);
+        // console.log(`Geospatial filter based on mapBounds WOULD be active.`); // Removed dev log
       }
       
-      // const CLUSTER_ZOOM_THRESHOLD = 7; 
-      // const MAX_POINTS_BEFORE_CLUSTERING = 2001; 
+      // Note: The geospatial filtering ($centerSphere or $box based on cLat/cLng/mapBounds)
+      // was temporarily bypassed for the $match stage of the aggregationPipeline below
+      // Currently, clusters are formed from all events in the sYear-eYear range
+      // To re-enable view-dependent clustering, the 'query' object in $match
 
-      // This endpoint will now always return clusters based on the baseQuery (year range only for this test)
-      console.log(`Fetching clusters for base query (year range only for this test):`, baseQuery, `Grid Precision Zoom: ${zoom}`);
+      // would need to incorporate the geospatial filters. This might be a TODO.
+      
+      // console.log(`Fetching clusters for base query (year range only for this test):`, baseQuery, `Grid Precision Zoom: ${zoom}`); // Removed dev log
       const precision = getGridPrecision(zoom); 
       const factor = Math.pow(10, precision);
 
@@ -144,7 +145,7 @@ connectDB().then(() => {
       ];
       
       const results = await eventsCollection.aggregate(aggregationPipeline).toArray();
-      console.log(`Returning ${results.length} clusters (based on year range, grid precision by zoom).`);
+      // console.log(`Returning ${results.length} clusters (based on year range, grid precision by zoom).`);
       res.json(results);
 
     } catch (error) {
@@ -153,7 +154,6 @@ connectDB().then(() => {
     }
   });
 
-  // New Endpoint: GET /api/events_in_cluster
   app.get('/api/events_in_cluster', async (req, res) => {
     if (!db) {
       return res.status(503).json({ error: "Database not connected" });
@@ -162,10 +162,9 @@ connectDB().then(() => {
       const { 
         minLat, maxLat, minLng, maxLng, 
         startYear, endYear, 
-        limit = '100' // Limit how many individual events to return from a cluster
+        limit = '100' 
       } = req.query;
 
-      // Validate and parse parameters
       const sYear = parseInt(startYear, 10);
       const eYear = parseInt(endYear, 10);
       const lim = parseInt(limit, 10);
@@ -187,27 +186,25 @@ connectDB().then(() => {
         year: { $gte: sYear, $lte: eYear },
         location_geo: {
           $geoWithin: {
-            // Using $box with the exact bounds of the cluster
-            // Note: $box uses [bottomLeft, topRight] = [[minLng, minLat], [maxLng, maxLat]]
+
             $box: [ [fMinLng, fMinLat], [fMaxLng, fMaxLat] ]
           }
         }
       };
       
-      console.log("Fetching events within cluster bounds:", query);
+      // console.log("Fetching events within cluster bounds:", query); // Can be noisy, removed for now
       const events = await eventsCollection.find(query).limit(lim).map(doc => {
-        const { _id, ...rest } = doc; // Destructure to separate _id
-        return { id: _id, ...rest, isCluster: false }; // Create new object with id and spread rest
+        const { _id, ...rest } = doc; 
+        return { id: _id, ...rest, isCluster: false }; 
       }).toArray();
       res.json(events);
 
     } catch (error) {
-      console.error("Error fetching events in cluster:", error);
+      console.error("Error fetching events in cluster:", error); 
       res.status(500).json({ error: "Failed to fetch events in cluster" });
     }
   });
 
-  // GET /api/config/datarange - Get min and max year from events
   app.get('/api/config/datarange', async (req, res) => {
     if (!db) {
       return res.status(503).json({ error: "Database not connected" });
@@ -227,16 +224,14 @@ connectDB().then(() => {
       if (result.length > 0) {
         res.json({ minYear: result[0].minYear, maxYear: result[0].maxYear });
       } else {
-        // Fallback if no events or no year field (should not happen with our ETL)
         res.json({ minYear: 1990, maxYear: new Date().getFullYear() }); 
       }
     } catch (error) {
-      console.error("Error fetching data range:", error);
+      console.error("Error fetching data range:", error); 
       res.status(500).json({ error: "Failed to fetch data range" });
     }
   });
 
-  // New Endpoint: GET /api/events/summary - Get aggregated data for dashboard overview
   app.get('/api/events/summary', async (req, res) => {
     if (!db) {
       return res.status(503).json({ error: "Database not connected" });
@@ -257,12 +252,12 @@ connectDB().then(() => {
       const byYearPipeline = [
         { $match: baseQuery },
         { $group: { _id: "$year", count: { $sum: 1 } } },
-        { $project: { _id: 0, year: { $toString: "$_id" }, count: 1 } }, // Ensure year is string
+        { $project: { _id: 0, year: { $toString: "$_id" }, count: 1 } },
         { $sort: { year: 1 } }
       ];
       const summaryByYear = await eventsCollection.aggregate(byYearPipeline).toArray();
 
-      // Aggregation 2: Counts by group
+      // aggergatuon 2: Counts by group
       const byGroupPipeline = [
         { $match: baseQuery },
         { $group: { _id: "$group", count: { $sum: 1 } } },
@@ -271,7 +266,7 @@ connectDB().then(() => {
       ];
       const summaryByGroup = await eventsCollection.aggregate(byGroupPipeline).toArray();
       
-      console.log(`Returning summary for ${sYear}-${eYear}: ${summaryByYear.length} year entries, ${summaryByGroup.length} group entries.`);
+      // console.log(`Returning summary for ${sYear}-${eYear}: ${summaryByYear.length} year entries, ${summaryByGroup.length} group entries.`); // Removed dev log
       res.json({
         byYear: summaryByYear,
         byGroup: summaryByGroup
@@ -289,7 +284,6 @@ connectDB().then(() => {
   });
 });
 
-// Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Shutting down server...');
   await client.close();
