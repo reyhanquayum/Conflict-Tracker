@@ -1,4 +1,4 @@
-import React, { useMemo } from "react"; // Removed useState
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react"; // Added useRef
 import BarChart from "@/components/charts/BarChart";
 import PieChart from "@/components/charts/PieChart";
 import EventTypesPieChart from "@/components/charts/EventTypesPieChart";
@@ -39,13 +39,90 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
   selectedEventType,
   onEventTypeChange,
 }) => {
-  // Format availableGroups for the Combobox
-  const groupOptions = useMemo(
-    () =>
-      availableGroups
-        .map((group) => ({ value: group, label: group })),
-    [availableGroups]
-  );
+  // State for Group Combobox
+  const [groupSearchInput, setGroupSearchInput] = useState(""); 
+  const [comboboxGroupOptions, setComboboxGroupOptions] = useState<{ value: string; label: string; }[]>([]);
+  const [isSearchingGroups, setIsSearchingGroups] = useState(false);
+  const groupSearchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // State for Event Type Combobox (client-side search)
+  const [eventTypeSearchTerm, setEventTypeSearchTerm] = useState(""); 
+  const eventTypeOptionsForCombobox = useMemo(() => ([
+    { value: "__ALL_EVENT_TYPES__", label: "All Event Types" },
+    ...availableEventTypes.map(type => ({ value: type, label: type }))
+  ]), [availableEventTypes]);
+
+
+  // Debounced function to fetch groups from API
+  const fetchSearchedGroups = useCallback((searchTerm: string) => {
+    if (!currentYearRange) return; 
+
+    setIsSearchingGroups(true);
+    const { start, end } = currentYearRange;
+    let apiBase = "";
+    if (process.env.NODE_ENV !== 'production') {
+      apiBase = "http://localhost:3001";
+    }
+    const searchUrl = `${apiBase}/api/search_groups?term=${encodeURIComponent(searchTerm)}&startYear=${start}&endYear=${end}&limit=50`;
+    
+    fetch(searchUrl)
+      .then(res => {
+        if (!res.ok) throw new Error('Network response for search_groups not ok');
+        return res.json();
+      })
+      .then((data: string[]) => {
+        const newOptions = data.map(group => ({ value: group, label: group }));
+        // Always ensure "All Groups" is an option if results are shown,
+        // or if a specific group is being shown (e.g. after selection and search clear)
+        if (newOptions.length > 0 || selectedGroup) {
+          setComboboxGroupOptions([{ value: "__ALL_GROUPS__", label: "All Groups" }, ...newOptions]);
+        } else {
+          setComboboxGroupOptions([]);
+        }
+      })
+      .catch(error => {
+        console.error("Error searching groups:", error);
+        setComboboxGroupOptions([]); 
+      })
+      .finally(() => setIsSearchingGroups(false));
+  }, [currentYearRange, selectedGroup]); // Added selectedGroup
+
+  // Effect for group search input
+  useEffect(() => {
+    if (groupSearchDebounceRef.current) clearTimeout(groupSearchDebounceRef.current);
+    const trimmedSearch = groupSearchInput.trim();
+
+    if (trimmedSearch === "" && !selectedGroup) {
+      setComboboxGroupOptions([{ value: "__ALL_GROUPS__", label: "All Groups" }]); // Show "All Groups" if search empty & no selection
+      setIsSearchingGroups(false);
+      return;
+    }
+    if (trimmedSearch.length >= 2) {
+      groupSearchDebounceRef.current = setTimeout(() => fetchSearchedGroups(trimmedSearch), 500);
+    } else if (trimmedSearch.length > 0 && trimmedSearch.length < 2) {
+      setComboboxGroupOptions([{ value: "__ALL_GROUPS__", label: "All Groups" }]);
+      setIsSearchingGroups(false);
+    } else if (trimmedSearch === "" && selectedGroup) { // Search cleared but a group is selected
+        fetchSearchedGroups(selectedGroup); // Re-fetch to show selected group + "All Groups"
+    }
+    return () => { if (groupSearchDebounceRef.current) clearTimeout(groupSearchDebounceRef.current); };
+  }, [groupSearchInput, fetchSearchedGroups, selectedGroup]);
+
+  // Effect for selected group (external changes)
+  useEffect(() => {
+    if (selectedGroup && groupSearchInput.trim() === "") {
+      // If a group is selected and search is empty, ensure options list includes it and "All Groups"
+      // fetchSearchedGroups will handle adding "All Groups" and the selected group if found
+      const isSelectedInOptions = comboboxGroupOptions.some(opt => opt.value === selectedGroup);
+      if (!isSelectedInOptions) fetchSearchedGroups(selectedGroup);
+    } else if (!selectedGroup && groupSearchInput.trim() === "") {
+      // If no group selected and search is empty, show "All Groups"
+      setComboboxGroupOptions([{ value: "__ALL_GROUPS__", label: "All Groups" }]);
+    }
+  }, [selectedGroup, groupSearchInput, fetchSearchedGroups]); // REMOVED comboboxGroupOptions from dependency array
+
+  // No special effects needed for event type combobox options if it's always populated by availableEventTypes
+  // and uses client-side search.
 
   const barChartData = useMemo(() => {
     return isClusterSelected
@@ -111,43 +188,63 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
         <div className="space-y-3 pt-2">
           <div>
             <label
-              htmlFor="group-combobox"
+              htmlFor="group-combobox" // ID of the trigger button for the Combobox
               className="block text-xs font-medium text-slate-300 mb-1"
             >
               Filter by Group:
             </label>
             <Combobox
-              options={groupOptions}
-              value={selectedGroup || undefined} // Combobox expects undefined for no selection if placeholder is used
-              onChange={(value) => onGroupChange(value)} // value will be string or null
+              options={comboboxGroupOptions.length > 0 ? comboboxGroupOptions : [{ value: "__ALL_GROUPS__", label: "All Groups" }]}
+              value={selectedGroup || undefined} 
+              onChange={(value) => {
+                if (value === "__ALL_GROUPS__") {
+                  onGroupChange(null);
+                  setGroupSearchInput(""); 
+                } else {
+                  onGroupChange(value);
+                  setGroupSearchInput(value || ""); 
+                }
+              }}
               placeholder="Select group..."
               searchPlaceholder="Search groups..."
-              emptyText="No group found."
+              emptyText={isSearchingGroups ? "Searching..." : "No group found. Type to search."}
               triggerClassName="bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600 focus:ring-sky-500 focus:border-sky-500"
-              contentClassName="bg-slate-800 border-slate-700 text-slate-100" // Style popover content
+              contentClassName="bg-slate-800 border-slate-700 text-slate-100"
+              isLoading={isSearchingGroups}
+              inputValue={groupSearchInput}
+              onInputChange={setGroupSearchInput}
+              displayValueLabel={selectedGroup || undefined} // Use selectedGroup directly as its own label
             />
           </div>
           <div>
             <label
-              htmlFor="event-type-filter"
+              htmlFor="event-type-combobox"
               className="block text-xs font-medium text-slate-300 mb-1"
             >
               Filter by Event Type:
-            </label>{" "}
-            {/* This can remain a select for now, or also be a Combobox */}
-            <select
-              id="event-type-filter"
-              value={selectedEventType || ""}
-              onChange={(e) => onEventTypeChange(e.target.value || null)}
-              className="w-full p-2 text-xs bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:ring-sky-500 focus:border-sky-500"
-            >
-              <option value="">All Event Types</option>
-              {availableEventTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+            </label>
+            <Combobox
+              options={eventTypeOptionsForCombobox} // Already includes "All Event Types"
+              value={selectedEventType || undefined}
+              onChange={(value) => {
+                if (value === "__ALL_EVENT_TYPES__") {
+                  onEventTypeChange(null);
+                  setEventTypeSearchTerm("");
+                } else {
+                  onEventTypeChange(value);
+                  setEventTypeSearchTerm(value || ""); 
+                }
+              }}
+              placeholder="Select event type..."
+              searchPlaceholder="Search event types..." 
+              emptyText="No event type found."
+              triggerClassName="bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600 focus:ring-sky-500 focus:border-sky-500"
+              contentClassName="bg-slate-800 border-slate-700 text-slate-100"
+              inputValue={eventTypeSearchTerm}
+              onInputChange={setEventTypeSearchTerm}
+              displayValueLabel={selectedEventType || undefined} // Use selectedEventType directly as its own label
+              // isLoading is not needed for client-side search
+            />
           </div>
         </div>
 

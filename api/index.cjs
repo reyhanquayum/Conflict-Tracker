@@ -23,9 +23,8 @@ async function getDb() {
   }
   try {
     if (!client) { 
-        client = new MongoClient(mongoUri, {
-            serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true }
-        });
+        // Removed serverApi options to allow use of 'distinct' command
+        client = new MongoClient(mongoUri); 
     }
     await client.connect();
     db = client.db("conflict_tracker_db");
@@ -46,6 +45,49 @@ function getGridPrecision(zoomLevel) {
 }
 
 // --- deefine API routes ---
+
+app.get('/api/search_groups', async (req, res) => {
+  try {
+    const currentDb = await getDb();
+    const { term, startYear, endYear, limit = '20' } = req.query;
+    const sYear = parseInt(startYear, 10);
+    const eYear = parseInt(endYear, 10);
+    const searchLimit = parseInt(limit, 10);
+
+    if (isNaN(sYear) || isNaN(eYear)) {
+      return res.status(400).json({ error: "Valid startYear and endYear are required." });
+    }
+    // Allow empty string for term, but not other falsy values or non-strings
+    if (term === undefined || term === null || typeof term !== 'string') {
+      return res.status(400).json({ error: "Search term must be a string." });
+    }
+
+    if (term.trim() === "") { // If term is empty or only whitespace, return empty array
+      return res.json([]);
+    }
+
+    const eventsCollection = currentDb.collection('events');
+    const query = {
+      year: { $gte: sYear, $lte: eYear },
+      group: new RegExp(term, 'i') // Case-insensitive regex search
+    };
+
+    // Using distinct here is efficient for getting unique group names matching the criteria
+    const matchingGroups = await eventsCollection.distinct("group", query);
+    
+    // Sort and limit results (distinct doesn't have a built-in limit for this use case)
+    const sortedAndLimitedGroups = matchingGroups
+      .filter(g => g) // Filter out null/empty groups that might exist
+      .sort() // Alphabetical sort
+      .slice(0, searchLimit); // Apply limit
+
+    res.json(sortedAndLimitedGroups);
+
+  } catch (error) {
+    console.error("Error searching groups:", error);
+    res.status(500).json({ error: "Failed to search groups" });
+  }
+});
 
 app.get('/api/filter_options', async (req, res) => {
   try {
