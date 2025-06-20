@@ -91,7 +91,3 @@ We extend our gratitude to ACLED for making their valuable data publicly availab
 2.  Update the MongoDB connection string and CSV file path in `scripts/process_data.py` if necessary.
 3.  Run the script: `python scripts/process_data.py`
     This will populate your MongoDB database with event data from the ACLED CSV.
-
----
-
-This project aims to provide an insightful and interactive way to explore complex conflict data.
