@@ -2,23 +2,11 @@
 
 [View the project here!](https://conflict-tracker-ten.vercel.app/)
 
-This is an interactive 3D data visualization of extremist activity and conflict events, primarily focusing on the Middle East and North Africa (MENA) region. This application allows users to explore event data across a timeline on a 3D globe, view aggregated statistics, and also view specific event details.
-
-## Key Features
-
-*   **Interactive 3D Globe:** Visualizes event clusters as 3D spikes, with height indicating event density.
-*   **Timeline Control:** A slider to filter events by year range.
-*   **Dynamic Clustering:** Event data is clustered geographically, with cluster granularity adjusting based on zoom level.
-*   **Detailed Event Information:** Clicking on a cluster reveals a panel with a list of individual events, including descriptions.
-*   **Dashboard Analytics:**
-    *   Bar chart showing event counts per year (for the overall selected range or a specific cluster).
-    *   Pie chart displaying event proportion by group (for the overall selected range or a specific cluster).
-    *   Toggleable dashboard visibility.
-*   **Hover Interactions:** Spikes on the globe highlight on hover, desaturating other spikes for focus.
+This is an interactive 3D data visualization of geopolitical events in the Middle East and North Africa (MENA) region. This application allows users to explore event data across a timeline on a 3D globe, view aggregated statistics, and view specific event details.
 
 ## Data Source
 
-The event data used in this visualization is sourced from the **Armed Conflict Location & Event Data Project (ACLED)**.
+The event data used is sourced from the **Armed Conflict Location & Event Data Project (ACLED)**.
 The specific dataset covers events from **1999 to May 2, 2025**, for the **Middle East and North Africa region**.
 
 We extend our gratitude to ACLED for making their valuable data publicly available. Please refer to [acleddata.com](https://acleddata.com) for more information on their dataset and data collection methodology.
