@@ -181,39 +181,39 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
 
   return (
     <>
-      <div className="max-w-sm bg-slate-900 text-slate-100 p-4 shadow-lg rounded-lg overflow-y-auto h-[calc(100vh-5rem)] flex flex-col">
-        <div className="flex justify-between items-center mb-3 border-b border-slate-700 pb-2 shrink-0">
-          <h3 className="text-lg font-semibold text-slate-100">
+      <div className="max-w-sm bg-zinc-900 text-zinc-100 p-3 border border-zinc-700/50 border-t-2 border-t-amber-600/60 rounded overflow-y-auto h-[calc(100vh-5rem)] flex flex-col">
+        <div className="flex justify-between items-center mb-3 border-b border-zinc-700/30 pb-2 shrink-0">
+          <h3 className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest">
             Dashboard
           </h3>
-          <button 
-            onClick={onShowHelp} 
-            className="text-slate-400 hover:text-slate-100 transition-colors p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
+          <button
+            onClick={onShowHelp}
+            className="text-zinc-500 hover:text-zinc-300 transition-colors p-1 rounded-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
             aria-label="Show help"
           >
-            <HelpCircle className="h-5 w-5" />
+            <HelpCircle className="h-4 w-4" />
           </button>
         </div>
-        <div className="space-y-4 text-sm flex-grow overflow-y-auto pr-1">
+        <div className="space-y-3 text-xs flex-grow overflow-y-auto pr-1">
           {currentYearRange && (
             <p>
-              <strong className="text-slate-300">Selected Years:</strong>{" "}
-              {currentYearRange.start} - {currentYearRange.end}
+              <span className="text-zinc-500 text-[10px] uppercase tracking-wider">Years</span>{" "}
+              <span className="text-zinc-200 tabular-nums">{currentYearRange.start} - {currentYearRange.end}</span>
             </p>
           )}
           {totalFilteredEvents !== undefined && (
             <p>
-              <strong className="text-slate-300">Displayed Events:</strong>{" "}
-              {totalFilteredEvents}
+              <span className="text-zinc-500 text-[10px] uppercase tracking-wider">Events</span>{" "}
+              <span className="text-zinc-200 tabular-nums">{totalFilteredEvents.toLocaleString()}</span>
             </p>
           )}
           <div className="space-y-3 pt-2">
             <div>
               <label
                 htmlFor="group-combobox"
-                className="block text-xs font-medium text-slate-300 mb-1"
+                className="block text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1"
               >
-                Filter by Group:
+                Filter by Group
               </label>
               <Combobox
                 options={
@@ -238,8 +238,8 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
                     ? "Searching..."
                     : "No group found. Type to search."
                 }
-                triggerClassName="bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600 focus:ring-sky-500 focus:border-sky-500"
-                contentClassName="bg-slate-800 border-slate-700 text-slate-100"
+                triggerClassName="bg-zinc-800 border-zinc-700/50 text-zinc-200 hover:bg-zinc-700 focus:ring-amber-500 focus:border-amber-500"
+                contentClassName="bg-zinc-800 border-zinc-700/50 text-zinc-200"
                 isLoading={isSearchingGroups}
                 inputValue={groupSearchInput}
                 onInputChange={setGroupSearchInput}
@@ -256,7 +256,7 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
               />
               <Button
                 variant="link"
-                className="text-xs text-sky-400 hover:text-sky-300 p-0 h-auto mt-1"
+                className="text-[10px] text-amber-500 hover:text-amber-400 p-0 h-auto mt-1"
                 onClick={() => setIsBrowseGroupsModalOpen(true)}
               >
                 Browse all groups...
@@ -265,9 +265,9 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
             <div>
               <label
                 htmlFor="event-type-combobox"
-                className="block text-xs font-medium text-slate-300 mb-1"
+                className="block text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-1"
               >
-                Filter by Event Type:
+                Filter by Event Type
               </label>
               <Combobox
                 options={eventTypeOptionsForCombobox}
@@ -284,8 +284,8 @@ const DashboardPanel: React.FC<DashboardPanelProps> = ({
                 placeholder="Select event type..."
                 searchPlaceholder="Search event types..."
                 emptyText="No event type found."
-                triggerClassName="bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600 focus:ring-sky-500 focus:border-sky-500"
-                contentClassName="bg-slate-800 border-slate-700 text-slate-100"
+                triggerClassName="bg-zinc-800 border-zinc-700/50 text-zinc-200 hover:bg-zinc-700 focus:ring-amber-500 focus:border-amber-500"
+                contentClassName="bg-zinc-800 border-zinc-700/50 text-zinc-200"
                 inputValue={eventTypeSearchTerm}
                 onInputChange={setEventTypeSearchTerm}
                 displayValueLabel={selectedEventType || undefined}

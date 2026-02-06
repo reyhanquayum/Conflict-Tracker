@@ -32,11 +32,13 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
       tooltip = d3.select("body").append<HTMLDivElement>("div") 
         .attr("class", "chart-tooltip") // using a class so we can find it again
         .style('position', 'absolute')
-        .style('background-color', 'rgba(0,0,0,0.8)') 
-        .style('color', 'white')
-        .style('padding', '5px 10px')
-        .style('border-radius', '4px')
-        .style('font-size', '12px')
+        .style('background-color', '#18181b')
+        .style('color', '#e4e4e7')
+        .style('padding', '4px 8px')
+        .style('border-radius', '2px')
+        .style('border', '1px solid #3f3f46')
+        .style('font-size', '11px')
+        .style('font-family', "'JetBrains Mono', monospace")
         .style('pointer-events', 'none') // so it doesn't steal mouse events from the chart
         .style('opacity', 0) // hidden by default
         .style('z-index', '100'); // make sure it's on top
@@ -87,7 +89,7 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
                 .attr("x", width / 2)
                 .attr("y", height / 2)
                 .attr("text-anchor", "middle")
-                .style("fill", "white")
+                .style("fill", "#a1a1aa")
                 .text("No group data for selected range.");
         }
         return;
@@ -96,8 +98,8 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
     const svg = d3.select(svgRef.current)
       .attr('width', width)
       .attr('height', height)
-      .style('background-color', '#2d3748')
-      .style('color', 'white');
+      .style('background-color', 'transparent')
+      .style('color', '#a1a1aa');
 
     svg.selectAll("*").remove();
 
@@ -141,8 +143,9 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
       .attr('transform', (d: any) => `translate(${labelArcGenerator.centroid(d)})`)
       .attr('dy', '0.35em')
       .attr('text-anchor', 'middle')
-      .style('font-size', '9px') 
-      .style('fill', 'white')
+      .style('font-size', '10px')
+      .style('fill', '#e4e4e7')
+      .style('font-weight', '600')
       .style('pointer-events', 'none') // labels shouldn't block mouse events on slices
       .text((d: any) => {
         const total = d3.sum(chartData, cd => cd.count);
@@ -168,8 +171,8 @@ const PieChart: React.FC<PieChartProps> = ({ data, width = 300, height = 300 }) 
   }, [data, width, height]);
 
   return (
-    <div className="bg-slate-700 p-4 rounded-md shadow-lg mt-4"> 
-      <h4 className="text-md font-semibold text-slate-100 mb-2">Event Proportion by Group</h4>
+    <div className="border-t border-zinc-700/30 pt-3 mt-2">
+      <h4 className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest mb-2">Event Proportion by Group</h4>
       <svg ref={svgRef}></svg>
     </div>
   );

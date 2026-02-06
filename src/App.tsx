@@ -337,8 +337,8 @@ function App() {
 
   if (!webGLSupported) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-900 text-slate-100 p-8 text-center">
-        <h1 className="text-2xl font-semibold mb-4">WebGL Not Supported</h1>
+      <div className="flex flex-col items-center justify-center h-screen bg-zinc-950 text-zinc-100 p-8 text-center">
+        <h1 className="text-2xl font-medium mb-4">WebGL Not Supported</h1>
         <p className="mb-2">
           This application requires WebGL to display the 3D globe visualization.
         </p>
@@ -416,7 +416,7 @@ function App() {
         <Button
           variant="outline"
           size="icon"
-          className="bg-slate-800 hover:bg-slate-700 text-slate-100 shrink-0"
+          className="bg-zinc-900 hover:bg-zinc-800 text-zinc-100 border border-zinc-700/50 shrink-0"
           onClick={() => setIsDashboardVisible(!isDashboardVisible)}
           aria-label={isDashboardVisible ? "Hide Dashboard" : "Show Dashboard"}
         >
@@ -437,44 +437,44 @@ function App() {
       )}
 
       <Dialog open={showInfoModal} onOpenChange={handleInfoModalOpenChange}>
-        <DialogContent className="bg-slate-800 text-slate-100 border-slate-700 sm:max-w-xl">
+        <DialogContent className="bg-zinc-900 text-zinc-100 border-zinc-700/50 sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
               Welcome to MENA Interactive Geospatial Conflict Tracker!
             </DialogTitle>
-            <DialogDescription className="text-slate-400 pt-2">
+            <DialogDescription className="text-zinc-400 pt-2">
               Explore global unrest and extremist activity with these
               interactive features:
             </DialogDescription>
           </DialogHeader>
-          <ul className="list-disc list-inside space-y-2 text-sm text-slate-300 py-4">
+          <ul className="list-disc list-inside space-y-2 text-sm text-zinc-300 py-4">
             <li>
-              Use the <strong className="text-sky-400">timeline slider</strong>{" "}
+              Use the <strong className="text-amber-400">timeline slider</strong>{" "}
               at the bottom to select a year range.
             </li>
             <li>
-              <strong className="text-sky-400">Zoom and pan</strong> the globe
+              <strong className="text-amber-400">Zoom and pan</strong> the globe
               to explore different regions.
             </li>
             <li>
               Click on event clusters (orange spikes) to view{" "}
-              <strong className="text-sky-400">detailed information</strong> and
+              <strong className="text-amber-400">detailed information</strong> and
               charts in the dashboard.
             </li>
             <li>
               Toggle the{" "}
-              <strong className="text-sky-400">dashboard visibility</strong>{" "}
+              <strong className="text-amber-400">dashboard visibility</strong>{" "}
               using the button in the top-left.
             </li>
           </ul>
-          <p className="text-xs text-slate-500 pt-3">
+          <p className="text-xs text-zinc-500 pt-3">
             Data sourced from ACLED (Armed Conflict Location & Event Data
             Project), covering events from 1999 to May 2, 2025, for the Middle
             East and North Africa region.
           </p>
           <a
             href="https://github.com/reyhanquayum/Conflict-Tracker"
-            className="text-xs text-blue-600 dark:text-blue-500 hover:underline pt-3"
+            className="text-xs text-amber-500 hover:text-amber-400 hover:underline pt-3"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -488,11 +488,11 @@ function App() {
                 id="dontShowAgainInfoModal"
                 checked={dontShowAgain}
                 onChange={(e) => setDontShowAgain(e.target.checked)}
-                className="h-4 w-4 text-sky-500 border-slate-600 rounded focus:ring-sky-400 bg-slate-700"
+                className="h-4 w-4 text-amber-500 border-zinc-600 rounded-sm focus:ring-amber-500 bg-zinc-800 accent-amber-500"
               />
               <label
                 htmlFor="dontShowAgainInfoModal"
-                className="text-xs text-slate-400 select-none"
+                className="text-xs text-zinc-400 select-none"
               >
                 Don't show this again
               </label>
@@ -501,7 +501,7 @@ function App() {
               <Button
                 type="button"
                 variant="secondary"
-                className="bg-sky-500 hover:bg-sky-600 text-white mt-2 sm:mt-0"
+                className="bg-amber-600 hover:bg-amber-700 text-zinc-950 font-medium mt-2 sm:mt-0"
               >
                 Got it!
               </Button>

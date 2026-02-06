@@ -94,8 +94,8 @@ const Combobox = React.forwardRef<
         </Button>
       </PopoverTrigger>
       <PopoverContent className={cn("w-[--radix-popover-trigger-width] p-0", contentClassName)} align="start">
-        <Command 
-          className="bg-slate-800 text-slate-100 rounded-md"
+        <Command
+          className="bg-zinc-800 text-zinc-200 rounded-sm"
           // Optional: If Command should not filter internally because options are already filtered by server
           // filter={(value, search) => options.find(opt => opt.value.toLowerCase() === value.toLowerCase()) ? 1 : 0} 
         >
@@ -103,11 +103,11 @@ const Combobox = React.forwardRef<
             value={inputValue}
             onValueChange={onInputChange} // Use this to update inputValue in parent
             placeholder={searchPlaceholder}
-            className="h-8 text-xs bg-slate-800 border-slate-700 placeholder-slate-400 focus:ring-sky-500 focus:border-sky-500 rounded-t-md" // Match Command bg, adjust border, ensure rounding fits
+            className="h-8 text-xs bg-zinc-800 border-zinc-700 placeholder-zinc-500 focus:ring-amber-500 focus:border-amber-500 rounded-t-sm"
           />
           <CommandList className="max-h-[200px] overflow-y-auto">
             {isLoading ? (
-              <div className="p-2 text-center text-xs text-slate-400">Loading...</div>
+              <div className="p-2 text-center text-xs text-zinc-500">Loading...</div>
             ) : (
               <>
                 <CommandEmpty className="py-4 text-center text-xs">{emptyText}</CommandEmpty>
@@ -122,7 +122,7 @@ const Combobox = React.forwardRef<
                           onChange(currentValue === value ? null : currentValue);
                           setOpen(false);
                         }}
-                        className="text-xs text-slate-100 hover:bg-slate-700 aria-selected:bg-sky-600 aria-selected:text-white"
+                        className="text-xs text-zinc-200 hover:bg-zinc-700 aria-selected:bg-amber-600 aria-selected:text-zinc-950"
                       >
                         <Check
                           className={cn(

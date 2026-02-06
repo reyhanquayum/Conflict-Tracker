@@ -61,8 +61,8 @@ const BarChart: React.FC<BarChartProps> = ({ data, width = 400, height = 300 }) 
     const svg = d3.select(svgRef.current)
       .attr('width', width)
       .attr('height', height)
-      .style('background-color', '#2d3748') 
-      .style('color', 'white'); 
+      .style('background-color', 'transparent')
+      .style('color', '#a1a1aa');
 
     // Clear previous chart elements
     svg.selectAll("*").remove();
@@ -109,7 +109,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, width = 400, height = 300 }) 
       .text(d => String(d)); // d here is the year string from tickValues
 
     xAxisGroup.selectAll("text")
-        .style("fill", "white")
+        .style("fill", "#a1a1aa")
         .style("font-size", "9px") 
         .attr("transform", "rotate(-35)") 
         .attr("text-anchor", "end")       
@@ -120,7 +120,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, width = 400, height = 300 }) 
     g.append('g')
       .call(d3.axisLeft(yScale))
       .selectAll("text")
-        .style("fill", "white"); 
+        .style("fill", "#a1a1aa"); 
 
     // bars
     g.selectAll('.bar')
@@ -131,14 +131,14 @@ const BarChart: React.FC<BarChartProps> = ({ data, width = 400, height = 300 }) 
         .attr('y', d => yScale(d.count))
         .attr('width', xScale.bandwidth())
         .attr('height', d => innerHeight - yScale(d.count))
-        .attr('fill', 'steelblue');
+        .attr('fill', '#d97706');
 
     svg.append("text")
         .attr("class", "x-axis-label")
         .attr("text-anchor", "middle")
         .attr("x", margin.left + innerWidth / 2)
         .attr("y", height - margin.bottom / 2 + 10)
-        .style("fill", "white")
+        .style("fill", "#a1a1aa")
         .style("font-size", "10px")
         .text("Year");
 
@@ -148,15 +148,15 @@ const BarChart: React.FC<BarChartProps> = ({ data, width = 400, height = 300 }) 
         .attr("transform", "rotate(-90)")
         .attr("x", -(margin.top + innerHeight / 2))
         .attr("y", margin.left / 2 - 10)
-        .style("fill", "white")
+        .style("fill", "#a1a1aa")
         .style("font-size", "10px")
         .text("Number of Events");
 
   }, [data, width, height]); 
 
   return (
-    <div className="bg-slate-700 p-4 rounded-md shadow-lg">
-        <h4 className="text-md font-semibold text-slate-100 mb-2">Events per Year</h4>
+    <div className="border-t border-zinc-700/30 pt-3">
+        <h4 className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest mb-2">Events per Year</h4>
         <svg ref={svgRef}></svg>
     </div>
   );

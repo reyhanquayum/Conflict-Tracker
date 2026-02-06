@@ -51,8 +51,8 @@ const TimelineSlider: React.FC<TimelineSliderProps> = ({
   }
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-10 bg-slate-900 text-slate-100 p-4 shadow-lg rounded-lg">
-      <h4 className="text-md font-semibold text-slate-100 mb-3 text-center">Filter Events by Year Range</h4>
+    <div className="absolute bottom-4 left-4 right-4 z-10 bg-zinc-900/95 text-zinc-100 p-3 border border-zinc-700/50 rounded backdrop-blur-sm">
+      <h4 className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest mb-2 text-center">Year Range</h4>
       <div className="flex items-center px-2">
         <span className="mr-3 text-sm tabular-nums">{draftRange[0]}</span> 
         <Range

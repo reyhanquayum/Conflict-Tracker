@@ -7,6 +7,10 @@ export default {
   ],
   theme: {
   	extend: {
+  		fontFamily: {
+  			mono: ["'JetBrains Mono'", 'ui-monospace', "'Cascadia Code'", "'Source Code Pro'", 'Menlo', 'Consolas', 'monospace'],
+  			sans: ["'JetBrains Mono'", 'ui-monospace', "'Cascadia Code'", "'Source Code Pro'", 'Menlo', 'Consolas', 'monospace'],
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

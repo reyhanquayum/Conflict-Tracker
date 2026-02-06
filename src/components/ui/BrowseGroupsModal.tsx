@@ -43,13 +43,13 @@ const BrowseGroupsModal: React.FC<BrowseGroupsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="bg-slate-800 text-slate-100 border-slate-700 sm:max-w-md max-h-[80vh] flex flex-col">
+      <DialogContent className="bg-zinc-900 text-zinc-100 border-zinc-700/50 sm:max-w-md max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             Browse All Groups 
             {currentYearRange && ` (${currentYearRange.start} - ${currentYearRange.end})`}
           </DialogTitle>
-          <DialogDescription className="text-slate-400 pt-1">
+          <DialogDescription className="text-zinc-400 pt-1">
             Select a group to apply it as a filter.
           </DialogDescription>
         </DialogHeader>
@@ -60,7 +60,7 @@ const BrowseGroupsModal: React.FC<BrowseGroupsModalProps> = ({
             placeholder={`Search ${allGroups.length} groups...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-2 text-sm bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:ring-sky-500 focus:border-sky-500"
+            className="w-full p-2 text-xs bg-zinc-800 border border-zinc-700/50 rounded-sm text-zinc-100 focus:ring-amber-500 focus:border-amber-500 placeholder-zinc-500"
           />
         </div>
 
@@ -70,20 +70,20 @@ const BrowseGroupsModal: React.FC<BrowseGroupsModalProps> = ({
               <Button
                 key={group}
                 variant="ghost"
-                className="w-full justify-start text-left text-sm text-slate-200 hover:bg-slate-700 hover:text-sky-400 h-auto py-1.5 px-2"
+                className="w-full justify-start text-left text-xs text-zinc-300 hover:bg-zinc-800 hover:text-amber-400 h-auto py-1.5 px-2"
                 onClick={() => handleSelectAndClose(group)}
               >
                 {group}
               </Button>
             ))
           ) : (
-            <p className="text-sm text-slate-400 text-center py-4">No groups match your search.</p>
+            <p className="text-xs text-zinc-500 text-center py-4">No groups match your search.</p>
           )}
         </div>
 
         <DialogFooter className="mt-4">
           <DialogClose asChild>
-            <Button type="button" variant="outline" className="bg-slate-700 hover:bg-slate-600 border-slate-600">
+            <Button type="button" variant="outline" className="bg-zinc-800 hover:bg-zinc-700 border-zinc-700">
               Close
             </Button>
           </DialogClose>
