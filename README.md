@@ -37,3 +37,6 @@ Needs a `.env` in the project root with your MongoDB connection string:
 ```
 MONGO_URI=your_mongodb_connection_string
 ```
+## TODO
+[] - use API and axios
+[] - update gallery
